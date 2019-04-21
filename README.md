@@ -1,6 +1,6 @@
 # Automated Player Station Logistics for X4
 
-##Problem/Opportunity Statement:
+## Problem/Opportunity Statement:
 
 There currently is no real logistics functionality for stations. Each station is an independent entity that doesn't know or care that it's part of a larger network of faction owned stations. "Logistics" are limited to buy and sell orders, and having traders assigned to a station is really hit or miss. Said traders also won't prefer other faction owned stations over any other stations. Because they evaluate prices, it's all based on where the good can be got for the cheapest. That means there's no bigger logistical vision than an individual station and it's needs.
 
@@ -15,13 +15,13 @@ Another goal is to minimize player interaction with the logistical system. The p
 It should largely be "set it and forget it" or maybe "set it and occaisionally monitor it". The main concern of the player should really be "Do I have enough production facilities placed strategically so outside purchases are unnecessary and do I have enough tradeships assigned to production stations (and/or miners for first tier products) to be able to fetch the needed wares?"
 
 
-##System Overview:
+## System Overview:
 
 At a high level, station managers should be the central point of the logistics network. They should figure out their resource needs, and then check with other stations to see if those needs can be met in-network before issuing buy orders for those that can't be. Trade ships assigned to the station should then be told to go transfer wares from in-network stations, and only if in-network production can't satisfy the demand should they seek to buy goods from other factions (after in-network available resources are exhausted, of course).
 
 This simple change to how the system currently works would end up being much more effecient, and allow for excess wares to be sold on the open market bringing in additional revenue for the player in an intelligent manner.
 
-###More in depth:
+### More in depth:
 
 The system should effectively be one way: Those needing resources should be sending traders to where they can aquire said resources. Being bi-directional (sending traders to get goods from other player stations, as well as sending traders to take finished goods to other stations) is more complicated than I currently wish to tackle. This mod may well evolve into that in the future, but for now it's going to be upstream only.
 
@@ -45,7 +45,7 @@ For miners, if the station has miners attached, it should basically never try to
 
 All of this should culminate in an efficient logistical network with little waste, while remaining rather "hands off" for the player, so they aren't constantly trying to micromanage things. As new stations come online, there should remain little-to-no management by the player.
 
-##Technical Issues (Also known as "Things I need help figuring out"
+## Technical Issues (Also known as "Things I need help figuring out"
 
 The current system appears to be very ship focused. Being a subordinate appears to only modify the ship's ware list and range, other than that it looks like it's a normal trade behavior.
 
