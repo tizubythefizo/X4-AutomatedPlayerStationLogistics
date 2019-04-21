@@ -1,7 +1,5 @@
 # Automated Player Station Logistics for X4
 
-## Problem/Opportunity Statement:
-
 There currently is no real logistics functionality for stations. Each station is an independent entity that doesn't know or care that it's part of a larger network of faction owned stations. "Logistics" are limited to buy and sell orders, and having traders assigned to a station is really hit or miss. Said traders also won't prefer other faction owned stations over any other stations. Because they evaluate prices, it's all based on where the good can be got for the cheapest. That means there's no bigger logistical vision than an individual station and it's needs.
 
 That's obviously a problem, particularly for the player, as it means the player (who will virtually always have a bigger picture in mind) can't actually achieve that vision, at least not without some really inefficient workarounds and micromanagement. The options currently for the player are either to restrict products from other factions and to manipulate prices such that only player tradeships will ever possibly be interested in them.
