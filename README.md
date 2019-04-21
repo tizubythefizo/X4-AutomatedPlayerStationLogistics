@@ -43,7 +43,7 @@ For miners, if the station has miners attached, it should basically never try to
 
 All of this should culminate in an efficient logistical network with little waste, while remaining rather "hands off" for the player, so they aren't constantly trying to micromanage things. As new stations come online, there should remain little-to-no management by the player.
 
-## Technical Issues (Also known as "Things I need help figuring out"
+## Current Technical Issues
 
 The current system appears to be very ship focused. Being a subordinate appears to only modify the ship's ware list and range, other than that it looks like it's a normal trade behavior.
 
