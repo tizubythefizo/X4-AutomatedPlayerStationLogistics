@@ -21,6 +21,8 @@ This simple change to how the system currently works would end up being much mor
 
 ### More in depth:
 
+Note: FI = Future Improvement 
+
 The system should effectively be one way: Those needing resources should be sending traders to where they can aquire said resources. Being bi-directional (sending traders to get goods from other player stations, as well as sending traders to take finished goods to other stations) is more complicated than I currently wish to tackle. This mod may well evolve into that in the future, but for now it's going to be upstream only.
 
 Stations already calculate their demand based on their available storage, for each good produced (target stock level) and issue buy orders to fill to that level. It's currently very simple. What I instead aim to do is make this a bit more complex. They should retain their target stock level calculations, but instead of just issuing a buy order for resources, they should first check with other player stations and attempt to reserve wares for transfer. If there aren't enough wares for transfer to satisfy the demand, only the remaining amount should be done as buy orders (target stock - reserved from other stations = buy order). [FI: Criticality level where if a good is too far below target stock levels, station managers will just seek the closest available resource, player or not, and not really care about cost. Their goal is to keep production going.]
