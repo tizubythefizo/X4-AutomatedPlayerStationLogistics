@@ -48,12 +48,10 @@ All of this should culminate in an efficient logistical network with little wast
 - The current system appears to be very ship focused. Being a subordinate appears to only modify the ship's ware list and range, other than that it looks like it's a normal trade behavior.
 
 - I think the way it works is that when the player assigns a trader to a station, the lib.request.orders aiscript is run, and then the trader is assigned order.trade.routine aiscipt and just goes off to do its own thing based on that script. From what I can tell the station isn't actually managing anything.
-
-lib.request.orders actually may serve as a good entrypoint for the ships. It looks like I could replace the current code which just sets up the trade routine to instead call a custom station trader script. That script could essentially just be a loop of "get thing to do from station, thing completed, restart". That would make sure the station manager doesn't have to poll its ships, and just essentially queues up (or determines at time a ship asks for something to do) orders.
+ -lib.request.orders actually may serve as a good entrypoint for the ships. It looks like I could replace the current code which just sets up the trade routine to instead call a custom station trader script. That script could essentially just be a loop of "get thing to do from station, thing completed, restart". That would make sure the station manager doesn't have to poll its ships, and just essentially queues up (or determines at time a ship asks for something to do) orders.
 
 - I would want to create "Transfer goods from player station", "trade to me", and "free trade" scripts (could likely leverage existing orders, and just modify them to conclude when all trades/transfers are done or even just use the same orders the player can give and wrap those up in a script).
-
-The closer I can keep it to using vanilla code the better, as then I don't have to maintain as much and it should be at least somewhat resistent to changes.
+ -The closer I can keep it to using vanilla code the better, as then I don't have to maintain as much and it should be at least somewhat resistent to changes.
 
 - Need to look at all the order.trade.x aiscripts as I think some of those are what get called when the player manually specifies trades. Definitely need to find the reservation code.
 
