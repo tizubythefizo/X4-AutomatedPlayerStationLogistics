@@ -4,7 +4,7 @@ There currently is no real logistics functionality for stations. Each station is
 
 That's obviously a problem, particularly for the player, as it means the player (who will virtually always have a bigger picture in mind) can't actually achieve that vision, at least not without some really inefficient workarounds and micromanagement. The options currently for the player are either to restrict products from other factions and to manipulate prices such that only player tradeships will ever possibly be interested in them.
 
-That's crap. The solutions mean excess production will never be sold to others. It also doesn't even guaruntee that resources will be aquired solely from other player owned stations when production is adequate, as NPC factions can always undercut the player on price. Not only that, but the entire system is based around buying and selling instead of transferring. Or in other words, the traders will always evaluate price even when price between player owned stations is irrelevant.
+The solutions mean excess production will never be sold to others. It also doesn't even guaruntee that resources will be aquired solely from other player owned stations when production is adequate, as NPC factions can always undercut the player on price. Not only that, but the entire system is based around buying and selling instead of transferring. Or in other words, the traders will always evaluate price even when price between player owned stations is irrelevant.
 
 This mod aims to change the entire logistical system for the Player so that their stations will operate as a more effecient network.
 
@@ -19,13 +19,22 @@ At a high level, station managers should be the central point of the logistics n
 
 This simple change to how the system currently works would end up being much more effecient, and allow for excess wares to be sold on the open market bringing in additional revenue for the player in an intelligent manner.
 
+### Gameplay Changes
+
+Because of how the logistics system is designed, there is a significant change to the portions of gameplay revolving the production chain and assigning player ships. Stations will need to have an adequate amount of traders for their situation, otherwise there will be a building backlog of wares to pick up, which could slow production and will cause assigned ships to never get to the point where they can sell the stations wares.
+
+This is an intended feature, as it is the main way the player can shape logistics for a station. The intention is to have the player managing at the macro level.
+
+Stations must have a manager and at least one trade ship assigned to begin reserving wares at other stations. The only exception to this is for stations which are in the same zone. A manager is still required, but if there are cargo drones on the station it will attempt to transfer from other player stations in the same zone, or NPC stations if those aren't available. Cargo drones will follow the same priority as ships, except they will not default to a general autotrader behavior if there is nothing to sell.
+
+
 ### More in depth:
 
 Note: FI = Future Improvement 
 
 The system should effectively be one way: Those needing resources should be sending traders to where they can aquire said resources. Being bi-directional (sending traders to get goods from other player stations, as well as sending traders to take finished goods to other stations) is more complicated than I currently wish to tackle. This mod may well evolve into that in the future, but for now it's going to be upstream only.
 
-Stations already calculate their demand based on their available storage, for each good produced (target stock level) and issue buy orders to fill to that level. It's currently very simple. What I instead aim to do is make this a bit more complex. They should retain their target stock level calculations, but instead of just issuing a buy order for resources, they should first check with other player stations and attempt to reserve wares for transfer. If there aren't enough wares for transfer to satisfy the demand, only the remaining amount should be done as buy orders (target stock - reserved from other stations = buy order). [FI: Criticality level where if a good is too far below target stock levels, station managers will just seek the closest available resource, player or not, and not really care about cost. Their goal is to keep production going.]
+Stations already calculate their demand based on their available storage, for each good produced (target stock level) and issue buy orders to fill to that level. It's currently very simple. What I instead aim to do is make this a bit more complex. They should retain their target stock level calculations, but instead of just issuing a buy order for resources, they should first check with other player stations and attempt to reserve wares for transfer. If there aren't enough wares for transfer to satisfy the demand, only the remaining amount should be done as buy orders (target stock - reserved from other stations = buy order).
 
 Additionally there should be a prioritization to determine which goods traders should be going out to get. This would simply be the good with the lowest percentage of stock (taking goods that are reserved for transfer into account). [FI: Allow the player to override this default priority by adjusting percentage of target stock levels.]
 
@@ -33,7 +42,7 @@ Stations that are targets to procure wares should likewise be reserving their pr
 
 If the downstream station has no traders, then no reservations can happen and the full resource demand will always be a buy order.
 
-When attempting to reserve resources from player owned stations, it should start at the closest station and work out, up to its max range (Determined by manager level, currently for subordinate traders this appears to be level * 2, so a max of 10 sectors). [FI: Warehouse hubs. Oh yeah. A proper logistical network].
+When attempting to reserve resources from player owned stations, it should start at the closest station and work out, up to its max range (Determined by manager level, this will be a max range of 5, 1 jump per skill star). [FI: Warehouse hubs. Oh yeah. A proper logistical network].
 
 If there aren't enough player-produced wares to fill the need, at that point a buy order for the remainder will be issued, and any subordinate traders that aren't tied up fetching resources from player stations would then attempt to get them on the market. This should prioritize cheapest price from non-player stations within range (regardless of distance). [FI: Critically levels could change this to focus on distance instead.]
 
@@ -44,16 +53,3 @@ They should first attempt to sell off excess products for their station (those n
 For miners, if the station has miners attached, it should basically never try to buy resources that are being mined. [FI: Criticality should play into this. If a ware is critically needed, it should then try to buy in addition to mining until no longer critical.].
 
 All of this should culminate in an efficient logistical network with little waste, while remaining rather "hands off" for the player, so they aren't constantly trying to micromanage things. As new stations come online, there should remain little-to-no management by the player.
-
-## Current Technical Issues
-
-- The current system appears to be very ship focused. Being a subordinate appears to only modify the ship's ware list and range, other than that it looks like it's a normal trade behavior.
-
-- I think the way it works is that when the player assigns a trader to a station, the lib.request.orders aiscript is run, and then the trader is assigned order.trade.routine aiscipt and just goes off to do its own thing based on that script. From what I can tell the station isn't actually managing anything.
-  - lib.request.orders actually may serve as a good entrypoint for the ships. It looks like I could replace the current code which just sets up the trade routine to instead call a custom station trader script. That script could essentially just be a loop of "get thing to do from station, thing completed, restart". That would make sure the station manager doesn't have to poll its ships, and just essentially queues up (or determines at time a ship asks for something to do) orders.
-- I would want to create "Transfer goods from player station", "trade to me", and "free trade" scripts (could likely leverage existing orders, and just modify them to conclude when all trades/transfers are done or even just use the same orders the player can give and wrap those up in a script).
-  - The closer I can keep it to using vanilla code the better, as then I don't have to maintain as much and it should be at least somewhat resistent to changes.
-- Need to look at all the order.trade.x aiscripts as I think some of those are what get called when the player manually specifies trades. Definitely need to find the reservation code.
-- The station stuff looks like the real hard part. I can't even find what scripts are used to represent the station management stuff. I'm not at all sure where to even begin here. I need to find those scripts, and also whatever API stuff I have access to for reserving goods, storing variables, etc... Can I even create new variables for a station (mainly needed so I can keep track of resources to aquire from other player owned stuff vs buy orders).
-- I did find the station mass traffic stuff. All of the above will need to account for mass traffic as well. In fact station managers should prefer mass traffic for wares transfers/buys as it frees up trade ships. The bigger question is can I set them to transfer instead of trade...
-- Also need to figure out how scripts persist and what steps (if any) I need to do when a save is loaded.
