@@ -1,0 +1,61 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<aiscript name="apsl.lib.AddNewStationToInterestedWaresList" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="aiscripts.xsd" version="1">
+  <!--
+    This action function will insert the given station data into the given list, sorted by raw distance.
+  -->
+  <params>
+    <param name="interestingStationData" comment="REQUIRED! The data about an interesting station to add to the list"/>
+    <param name="interestingStationsList" comment="REQUIRED! The list to add the station data too."/>
+  </params>
+  <attention min="unknown">
+    <actions>
+      <set_value name="$successResult" exact="false"/>
+      
+      <!--Parameter Validation-->
+      <do_if value="$interestingStationData? == false or typeof $interestingStationData != datatype.table or $interestingStationData.$rawDistance? == false">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.AddNewStationToInterestedWaresList parameter interestingStationData either does not exist, had no rawDistance property, or was not a table!'"/>
+        <return>
+          <retval name="wasSuccessful" value="$successResult"/>
+        </return>
+      </do_if>
+      <do_if value="$interestingStationsList? == false or typeof $interestingStationData != datatype.list">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.AddNewStationToInterestedWaresList parameter interestingStationsList either does not exist, or was not a list!'"/>
+        <return>
+          <retval name="wasSuccessful" value="$successResult"/>
+        </return>
+      </do_if>
+      
+      <!--Main logic-->
+
+      <do_if value="$interestingStationsList.count == 0">
+        <!--We can save a bit of time if the list is empty, the data to add will already be sorted by virtue of being the only thing there.-->
+        <append_to_list name="$interestingStationsList" exact="$interestingStationData"/>
+      </do_if>
+      <do_else>
+        <!-- Need to go through the list and find the first element where rawDistance is less than or equal to the current elements. That element is where to insert.-->
+        <!--If we get all the way through the list without having been added, it means it needs to go at the end of the list.-->
+
+        <do_all exact="$interestingStationsList" counter="$counter">
+
+          <do_if value="$interestingStationData.rawDistance le $interestingStationsList.{$counter}.rawDistance">
+            <!--Good place to insert!-->
+            <set_value name="$interestingStationsList.{$counter}" exact="$interestingStationData" operation="insert"/>
+            <set_value name="$successResult" exact="true"/>
+            <break/>
+          </do_if>
+          <!--If this was the last element and there was no where to add, append to the list and break.-->
+          <do_elseif value="$counter == $interestingStationData.count">
+            <append_to_list name="$interestingStationsList" exact="$interestingStationData"/>
+            <set_value name="$successResult" exact="true"/>
+            <break/>
+          </do_elseif>
+        </do_all>
+      </do_else>
+      
+      <!--If it was never inserted into the list, result will be false as it failed to insert. Shouldn't really be possible for that to happen though.-->
+      <return>
+        <retval name="wasSuccessful" value="$successResult"/>
+      </return>
+    </actions>
+  </attention>
+</aiscript>

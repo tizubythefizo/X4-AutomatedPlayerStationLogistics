@@ -1,0 +1,53 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<aiscript name="apsl.lib.StationShutdown" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="aiscripts.xsd" version="1">
+  <!--This script will "shut down" the station by removing all ware reservations. This happens when a manager is unassigned, or the station no longer has any traders assigned to it-->
+  <params>
+    <param name="stationLogisticsData" comment="REQUIRED! The logistics data for the station"/>
+    <param name="isOperationalButNoShips" default="false" comment="Optional! If the station is operational, but has no ships then this script will keep reservations for mass traffic connected stations"/>
+  </params>
+  <attention min="unknown">
+    <actions>
+      <set_value name="$successResult" exact="false"/>
+      
+      <!--Parameter Validation-->
+      <do_if value="$stationLogisticsData? == false or typeof $stationLogisticsTable != datatype.table">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.StationShutdown parameter stationLogisticsData either does not exist or was not a table!'"/>
+        <return>
+          <retval name="wasSuccessful" value="$successResult"/>
+        </return>
+      </do_if>
+      
+      <!--Main Logic-->
+      <!--Go through all the stations and remove any ware reservations, except  then clear all total reservations in resourceData-->
+      <!--Have to do it this way since removing wares from a station doesn't give back a list of what wares were removed and how many and it'll be quicker-->
+      <do_all exact="$stationLogisticsData.$ersourceData.keys.count" counter="$resourceCounter">
+        <set_value name="$stationLogisticsData.$resourceData.{$stationLogisticsData.$ersourceData.keys.{$resourceCounter}}.$totalReservations" exact="0"/>
+      </do_all>
+
+      <do_all exact="$stationLogisticsData.$stationsInRange.count" counter="$stationCounter">
+        <!--If this is running, and operational no ships is false, just remove all the reservations-->
+        <!--Likewise if the station isn't in the same zone, just remove the wares.-->
+        <do_if value="$isOperationalButNoShips == false or $stationLogisticsData.$stationsInRange.{$stationCounter}.$station.zone != $stationLogisticsData.$station.zone">
+          <remove_ware_reservation reserver="$stationLogisticsData" object="$stationLogisticsData.$stationsInRange.{$stationCounter}.$station"/>
+        </do_if>
+        <do_else>
+          <!--Station is in the same zone, and the logistics manager is still around, don't kill reservations as mass traffic can still handle them-->
+          <!--Just add any reservations back to the resourceData list...-->
+          <do_all exact="$stationLogisticsData.$stationsInRange.{$stationCounter}.$interestedWares.keys.count" counter="$wareCounter">
+            <set_value name="$interestedWare" exact="$stationLogisticsData.$stationsInRange.{$stationCounter}.$interestedWares.keys.{$wareCounter}"/>
+            
+            <do_if value="$stationLogisticsData.$stationsInRange.{$stationCounter}.$interestedWares.{$interestedWare} gt 0">
+              <set_value name="$stationLogisticsData.$resourceData.{$interestedWare}.$totalReservations" exact="$stationLogisticsData.$stationsInRange.{$stationCounter}.$interestedWares.{$interestedWare}"/>
+            </do_if>
+          </do_all>
+        </do_else>               
+      </do_all>
+
+      <set_value name="$successResult" exact="true"/>
+
+      <return>
+        <retval name="wasSuccessful" value="$successResult"/>
+      </return>
+    </actions>
+  </attention>
+</aiscript>

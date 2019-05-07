@@ -1,0 +1,82 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<aiscript name="apsl.lib.DetermineResourcePriorities" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="aiscripts.xsd" version="1">
+  <params>
+    <param name="stationLogisticsData" comment="REQUIRED! The logistics data for the station to determine resource priorities for"/>
+    <param name="buyOffers" comment="OPTIONAL! The buy offers list to use for determining priorities. Will be created if not passed in."/>
+  </params>
+  <attention min="unknown">
+    <actions>
+      <set_value name="$successResult" exact="false"/>
+      <set_value name="$result" exact="null"/>
+      
+      <!--Parameter Validation-->
+      <do_if value="$stationLogisticsData? == false or typeof $stationLogisticsTable != datatype.table">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.EvaluateLogistics parameter stationLogisticsData either does not exist or was not a table!'"/>
+        <return>
+          <retval name="wasSuccessful" value="$successResult"/>
+          <retval name="priorityResult" value="$result"/>
+        </return>
+      </do_if>
+      <do_if value="$buyOffers != null and typeof $buyOffers != datatype.list">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.EvaluateLogistics parameter buyOffers was passed in but was not a list!'"/>
+        <return>
+          <retval name="wasSuccessful" value="$operationSuccessful"/>
+          <retval name="result" value="null"/>
+        </return>
+      </do_if>
+      
+      
+      <!--First, get the "buy" list for the station which will tell me everything the station wants to buy. -->
+      <do_if value="$buyOffers? == false">
+        <find_buy_offer buyer="$stationLogisticsData.$station" multiple="true" result="$buyOffers" />  
+      </do_if>
+      
+      
+      <!--Then go through the list and check the percentage of stock that's currently filled (taking into account reservations if possible)-->
+      <!--Using buy offer amount should account for reservations. I think target stock - buy offer amount = (current stored + reserved = x) -->
+      <!--x / target stock gives a percentage and will be used for sorting (lowest percentage = highest priority) -->
+      <!--Pair this into a table. After all this is done, should be able to simply sort the keys and that's the resource list.-->
+      <set_value name="$resourceTable" exact="table[]"/>
+
+      <do_all exact="$buyOffers.count" counter="$buyCounter">
+        <do_if value="$buyOffers.{$buyCounter}.ware.iscargo == true">
+          <!--Divide by 0 safeguards-->
+
+          <do_if value="$stationLogisticsData.$station.cargo.{$buyOffers.{$buyCounter}.ware}.target == 0">
+            <!--
+                This really shouldn't happen if there's a buy offer outstanding for the good, but some mods (tradestations, warehouses) may get creative and create
+                offers without altering target levels. In this rare case, treat the buy offer as though it is the target stock level. Priority will be lowest (1).
+            -->
+            <set_value name="$resourceTable.{$buyOffers.{$buyCounter}.ware}" exact="1f"/>
+          </do_if>
+          <do_elseif value="$buyOffers.{$buyCounter}.amount == 0">
+            <!--Another rare case would be a buy offer amount that is zero. This might happen if reservations for the full amount are held (but I'm likely to cap them at 90% anyways)-->
+            <set_value name="$resourceTable.{$buyOffers.{$buyCounter}.ware}" exact="1f"/>
+          </do_elseif>
+          <do_else>
+            <!-- Normal case -->
+            <!--<set_value name="$priority" exact="($stationLogisticsData.$station.cargo.{$buyOffers.{$buyCounter}.ware}.target - $buyOffers.{$buyCounter}.amount)f / $stationLogisticsData.$station.cargo.{$buyOffers.{$buyCounter}.ware}.target"/>-->
+            <set_value name="$priority" exact="(1)f - $buyOffers.{$buyCounter}.stocklevel"/>
+            <set_value name="$resourceTable.{$buyOffers.{$buyCounter}.ware}" exact="$priority"/>            
+          </do_else>
+        </do_if>
+      </do_all>
+
+      <do_if value="$resourceTable.keys? == true and $resourceTable.keys.count ge 1">
+        <set_value name="$result" exact="$resourceTable.keys.sorted"/>
+      </do_if>
+      <do_else>
+        <!--If there were no resource priorities (happens if there's no production modules or workforce) return empty list-->
+        <set_value name="$result" exact="[]"/>
+      </do_else>
+
+      <set_value name="$successResult" exact="true"/>
+      
+      <return>
+        <retval name="wasSuccessful" value="$successResult"/>
+        <retval name="priorityResult" value="$resourceTable"/>
+      </return>
+      
+    </actions>
+  </attention>
+</aiscript>

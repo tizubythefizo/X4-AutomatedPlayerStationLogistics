@@ -1,0 +1,4 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<page id="98776" title="APSL Mod Messages" descr="0" voice="no">
+  <t id="1">$STATION$ has transferred $AMOUNT$ to your account.</t>
+</page>

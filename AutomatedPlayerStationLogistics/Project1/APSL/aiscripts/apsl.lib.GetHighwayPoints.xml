@@ -1,0 +1,51 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<aiscript name="apsl.lib.GetHighwayPoints" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="aiscripts.xsd" version="1">
+  <params>
+    <param name="startingSector" comment="REQUIRED: The starting sector which should contain a highway"/>
+    <param name="endingSector" comment="REQUIRED: The ending sector which the highway should exit"/>
+  </params>
+  <attention min="unknown">
+    <actions>
+      <set_value name="$wasSuccessful" exact="false"/>
+      <set_value name="$highwayEntrance" exact="null"/>
+      <set_value name="$highwayExit" exact="null"/>
+      
+      <!--Parameter Validation-->
+      <do_if value="$startingSector.exists != true or $startingSector.isclass.sector != true">
+        <debug_to_file name="'apsl.log'" text="'ERROR! alsp.lib.GetHighwayPoints parameter startingSector either does not exist or was not a sector!'"/>
+        <return>
+          <retval name="wasSuccessful" value="$wasSuccessful"/>
+          <retval name="entrance" value="$highwayEntrance"/>
+          <retval name="exit" value="$highwayExit"/>
+        </return>
+      </do_if>
+      <do_if value="$endingSector.exists != true or $endingSector.isclass.sector != true">
+        <debug_to_file name="'apsl.log'" text="'ERROR! alsp.lib.GetHighwayPoints parameter endingSector either does not exist or was not a sector!'"/>
+        <return>
+          <retval name="wasSuccessful" value="$wasSuccessful"/>
+          <retval name="entrance" value="$highwayEntrance"/>
+          <retval name="exit" value="$highwayExit"/>
+        </return>
+      </do_if>
+
+      <find_object space="$pathList.{$pathListCounter}" class="class.highwayentrygate" multiple="true" name="$highwayList" />
+      <do_all exact="$highwayList.count" counter="$highwayCounter">
+        <do_if value="$highwayList.{$highwayCounter}.exit.sector == $pathList.{$pathListCounter + 1}">
+          <!--Found it!-->
+          <set_value name="$highwayEntrance" exact="$highwayList.{$highwayCounter}"/>
+          <set_value name="$highwayExit" exact="$highwayList.{$highwayCounter}.exit"/>          
+          <break/>
+        </do_if>
+      </do_all>
+
+      <!--If we get this far, the operation was successful, regardless of if highways were found or not.-->
+      <!--Caller will need to check entrance/exit return variables.-->
+      <set_value name="$wasSuccessful" exact="true"/>
+      <return>
+        <retval name="wasSuccessful" value="$wasSuccessful"/>
+        <retval name="entrance" value="$highwayEntrance"/>
+        <retval name="exit" value="$highwayExit"/>
+      </return>
+    </actions>
+  </attention>
+</aiscript>

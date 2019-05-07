@@ -1,0 +1,76 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<aiscript name="apsl.lib.PruneResourceData" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="aiscripts.xsd" version="1">
+  <!--
+    Handles the pruning of interested stations and resource data. Any wares on stations which no longer have buy orders will have their reservations released
+    and will have their interested wares table be pruned.
+  -->
+  <params>
+    <param name="resourceData" comment="REQUIRED! The resource data able of the station to prune"/>
+    <param name="buyOffers" comment="REQUIRED! The buy offers to sync the prune to."/>
+    <param name="interestedStationsData" comment="REQUIRED! The interested stations data list for the station"/>
+    <param name="station" comment="REQUIRED! The station that is conducting the pruning."/>
+  </params>
+  <attention min="unknown">
+    <actions>
+      <set_value name="$successResult" exact="false"/>
+
+      <!--Parameter Validation-->
+      <do_if value="$resourceData? == false or typeof $resourceData != datatype.table">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.PruneResourceData parameter resourceData either does not exist or was not a table!'"/>
+        <return>
+          <retval name="wasSuccessful" value="$successResult"/>
+        </return>
+      </do_if>
+      <do_if value="$buyOffers != null and typeof $buyOffers != datatype.list">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.PruneResourceData parameter buyOffers either does not exist or was not a list!'"/>
+        <return>
+          <retval name="wasSuccessful" value="$successResult"/>
+        </return>
+      </do_if>
+      <do_if value="$station == null  or typeof $station.isclass.station != true">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.PruneResourceData parameter station either does not exist or was not a station!'"/>
+        <return>
+          <retval name="wasSuccessful" value="$successResult"/>
+        </return>
+      </do_if>
+      <do_if value="$interestedStationsData? == false or typeof $interestedStationsData != datatype.list">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.PruneResourceData parameter interestedStationsData either does not exist or was not a list!'"/>
+        <return>
+          <retval name="wasSuccessful" value="$successResult"/>
+        </return>
+      </do_if>
+
+      <set_value name="$pruneList" exact="$resourceData.keys.list.clone"/>
+
+      <!--Go through the list of resource data wares and if it's not found in the buy offers list, mark it for pruning.-->
+      <do_all exact="$pruneList.count" counter="$pruneCounter">
+        <set_value name="$wasFound" exact="false"/>
+
+        <do_all exact="$buyOffers.count" counter="$innerCounter">
+          <do_if value="$buyOffers.{$innerCounter}.ware == $stationLogisticsData.$resourceData.{$pruneList.{$pruneCounter}}">
+            <set_value name="$wasFound" exact="true"/>
+            <break/>
+          </do_if>
+        </do_all>
+
+        <do_if value="$wasFound == false">
+          <!--Need to scan through stations and also prune off the stations' data, making sure to release ware reservations.-->
+          <do_all exact="$interestedStationsData" counter="$stationCounter">
+            <do_if value="$interestedStationsData.{$stationCounter}.$interestedWares.{$pruneList.{$pruneCounter}}?">
+              <remove_ware_reservation object="$interestedStationsData.$station" reserver="$station" ware="$pruneList.{$pruneCounter}"/>
+              <remove_value name="$interestedStationsData.{$stationCounter}.$interestedWares.{$pruneList.{$pruneCounter}}"/>
+            </do_if>
+          </do_all>
+
+          <remove_value name="$resourceData.{$pruneList.{$pruneCounter}}"/>
+        </do_if>
+      </do_all>
+
+      <set_value name="$successResult" exact="true"/>
+
+      <return>
+        <retval name="wasSuccessful" value="$successResult"/>
+      </return>
+    </actions>
+  </attention>
+</aiscript>

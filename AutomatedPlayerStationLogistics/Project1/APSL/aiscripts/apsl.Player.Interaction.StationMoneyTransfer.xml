@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<aiscript name="apsl.Player.Interaction.StationMoneyTransfer" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="aiscripts.xsd" priority="10">
+  <params>
+    <param name="station" comment="Required: The station which is transferring credits to the player"/>
+    <param name="transferAmount" comment="Required: The amount of credits transferred to the player (should be of type money)" />
+  </params>
+  <attention min="unknown">
+    <actions>
+      <substitute_text text="$logText" source="{98776,1}" comment="$STATION$ has transferred $AMOUNT$ to your account.">
+        <replace string="'$STATION$'" with="$station.name"/>
+        <replace string="'$AMOUNT$'" with="$transferAmount.formatted.{%s %Cr}"/>
+      </substitute_text>
+      <write_to_logbook category="general" object="$station" title="$logText" money="$transferAmount" interaction="showonmap"/>
+      <show_notification text="$logText"/>
+    </actions>
+  </attention>
+</aiscript>

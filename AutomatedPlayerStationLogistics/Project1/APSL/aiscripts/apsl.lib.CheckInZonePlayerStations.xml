@@ -1,0 +1,63 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<aiscript name="apsl.lib.CheckInZonePlayerStations" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="aiscripts.xsd" version="1">
+  <!--Will look through the provided stations in range to see if their data is already tracked or not, and if not add it to the alreadyFoundInZoneStations list-->
+  <params>
+    <param name="baseZone" comment="REQUIRED! The zone to check for"/>
+    <param name="stationsInRange" comment="REQUIRED! All player stations in range"/>
+    <param name="alreadyFoundInZoneStations" comment="REQUIRED! List of station data that are in zone that will be ignored if found."/>
+  </params>
+  <attention min="unknown">
+    <actions>
+      <set_value name="$successResult" exact="false"/>
+      
+      <!--Parameter Validation-->
+      <do_if value="$baseZone? == false or $baseZone.isclass.zone == false">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.CheckInZonePlayerStations parameter baseZone either does not exist or was not a zone!'"/>
+        <return>
+          <retval name="wasSuccessful" value="$successResult"/>
+        </return>
+      </do_if>
+      <do_if value="$stationsInRange? == false or typeof $stationsInRange != datatype.list">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.CheckInZonePlayerStations parameter stationsInRange either does not exist or was not a list!'"/>
+        <return>
+          <retval name="wasSuccessful" value="$successResult"/>
+        </return>
+      </do_if>
+      <do_if value="$alreadyFoundInZoneStations? == false and typeof $alreadyFoundInZoneStations != datatype.list">
+        <debug_to_file name="apsl.log" text="'ERROR! apsl.lib.CheckInZonePlayerStations parameter alreadyFoundInZoneStations was not a list!'"/>
+        <return>
+          <retval name="wasSuccessful" value="$successResult"/>
+        </return>
+      </do_if>
+      
+      <!--Main Logic-->
+      <!--Go through the list of in range stations. Search alreadyFound to see if the in range station is found (for each in range station). If not found, add it.-->
+      <do_all exact="$stationsInRange.count" counter="$counter">
+        <set_value name="$wasFound" exact="false"/>
+        
+        <do_all exact="$alreadyFoundInZoneStations.count" counter="$innerCounter">
+          <do_if value="$alreadyFoundInZoneStations.{$innerCounter} == $stationsInRange.{$counter}">
+            <!--If it's found in the list, we know we aren't interested. Break.-->
+            <set_value name="$wasFound" exact="true"/>
+            <break/>
+          </do_if>          
+        </do_all>
+        
+        <!--If not found, check the zones. If they match, add to the already found list.-->
+        <do_if value="$wasFound == false">
+          <do_if value="$stationsInRange.{$counter}.$station.zone == $baseZone">
+            <!--Winner!-->
+            <append_to_list name="$alreadyFoundInZoneStations" exact="$stationsInRange.{$counter}"/>
+          </do_if>
+        </do_if>
+      </do_all>
+
+      <set_value name="$successResult" exact="true"/>
+
+      <return>
+        <retval name="wasSuccessful" value="$successResult"/>
+        <retval name="stationResults" value="$stationResults"/>
+      </return>
+    </actions>
+  </attention>
+</aiscript>

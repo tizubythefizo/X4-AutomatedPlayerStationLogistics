@@ -1,0 +1,34 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<aiscript name="apsl.lib.GetStationData" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="aiscripts.xsd" version="1">
+  <params>
+    <param name="stationId" comment="REQUIRED: The id of the station to get the logistics data of."/>
+  </params>  
+  <attention min="unknown">
+    <actions>
+
+      <set_value name="$result" exact="null" />
+      
+      <!--Parameter Validation-->
+      <do_if value="$stationId? == false or typeof $stationId != datatype.string">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.GetStationData parameter stationId either does not exist or was not a string!'"/>
+        <return>
+          <retval name="wasSuccessful" value="$successResult"/>
+        </return>
+      </do_if>
+      
+      <!-- See if the key exists, and if it does then we'll modify result to return its logistics data-->
+      <!-- 
+        It is theoretically possible for the key to exist, but the value to be an empty table, so the
+        caller will still need to perform some sanity checks aside from a null check.
+      -->
+      <do_if value="global.$apslData.$stationLogistics.{$stationId}?" >
+        <set_value name="$result" exact="global.$apslData.$stationLogistics.{$stationId}"/>
+      </do_if>
+      
+      <return>
+        <retval name="stationData" value="$result"/>
+      </return>
+      
+    </actions>
+  </attention>
+</aiscript>

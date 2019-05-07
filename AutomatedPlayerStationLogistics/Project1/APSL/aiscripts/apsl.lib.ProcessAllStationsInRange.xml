@@ -1,0 +1,44 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<aiscript name="apsl.lib.ProcessAllStationsInRange" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="aiscripts.xsd" version="1">
+  <!--
+    Used when initially bringing a station online. Will check ALL sectors in range for stations and process/add them to the correct bucket if they don't already exist.
+    It's intended this will only be used during a stations initialization, however if there's ever an edge case where a station can poof into existence and NOT be caught
+    by event handlers, this code will be able to find it and add it. Though it's a bit process heavy since the checking of lists is a bit complicated.
+  -->
+  <params>
+    <param name="stationLogisticsTable" comment="REQUIRED! The logistics table for the desired station to evaluate"/>
+  </params>
+  <attention min="unknown">
+    <actions>
+      <set_value name="$successResult" exact="false"/>
+      
+      <!--Parameter Valdation-->
+      <do_if value="$stationLogisticsTable == null or typeof $stationLogisticsTable != datatype.table">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.ProcessAllStationsInRange parameter stationLogisticsTable either does not exist or was not a table!'"/>
+        <return>
+          <retval name="wasSuccessful" value="$successResult"/>
+        </return>
+      </do_if>
+      
+      <!-- If we're in here it means we need to scan for all stations, and if they don't exist add them to the table to track. -->
+      <!--Get a list of all stations in range and add them to be tracked-->
+      <find_object class="class.station" checkoperational="true" owner="faction.player" space="$stationLogisticsTable.{$stationId}.$sectorsInRange" multiple="true" name="$foundStations" />
+
+      <do_if value="$foundStations? == true and $foundStations.count ge 1">
+        <do_all exact="$foundStations.count" counter="$stationCounter">
+          <run_script name="apsl.lib.ProcessNewInRangeStation">
+            <param name="newStation" value="$foundStations.{$stationCounter}"/>
+            <param name="stationLogisticsTable" value="$stationLogisticsTable"/>
+          </run_script>
+        </do_all>
+      </do_if>
+
+      <set_value name="$successResult" exact="true"/>
+      
+      <return>
+        <retval name="wasSuccessful" value="$successResult"/>
+      </return>
+    </actions>
+  </attention>
+
+</aiscript>

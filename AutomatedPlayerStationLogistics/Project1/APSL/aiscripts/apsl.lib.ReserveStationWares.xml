@@ -1,0 +1,64 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<aiscript name="apsl.lib.ReserveStationWares" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="aiscripts.xsd" version="1">
+  <params>
+    <param name="stationLogisticsData" comment="The logistics data for the station being evaluated"/>
+    <param name="stationManagerSkill" comment="REQUIRED! The skill level of the station manager"/>
+    <!--Note: I removed buy offers because in the case of actually reserving wares, we'll want to use the latest buy offers to ensure we don't go over the amount wanted.-->
+    <param name="stationsToCalculate" comment="Optional. If provided will only reserve at these stations."/>
+  </params>
+  <attention min="unknown">
+    <actions>
+      <!--Parameter Validation-->
+      <do_if value="$stationLogisticsData? == false or typeof $stationLogisticsTable != datatype.table">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.ReserveStationWares parameter stationLogisticsData either does not exist or was not a table!'"/>
+        <return>
+          <retval name="wasSuccessful" value="$successResult"/>
+        </return>
+      </do_if>
+      <do_if value="$stationManagerSkill? == false or typeof $stationManagerSkill != datatype.integer">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.ReserveStationWares parameter stationManagerSkill either does not exist or was not an integer!'"/>
+        <return>
+          <retval name="wasSuccessful" value="$successResult"/>
+        </return>
+      </do_if>
+      <do_if value="$buyOffers != null and typeof $buyOffers != datatype.list">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.EvaluateLogistics parameter buyOffers either does not exist or was not a list!'"/>
+        <return>
+          <retval name="wasSuccessful" value="$successResult"/>
+        </return>
+      </do_if>
+      <do_if value="$stationsToCalculate != null and typeof $stationsToCalculate != datatype.list">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.EvaluateLogistics parameter stationsToCalculate was not a list!'"/>
+        <return>
+          <retval name="wasSuccessful" value="$successResult"/>
+        </return>
+      </do_if>
+
+      <!--Main Logic-->
+      <set_value name="$successResult" exact="false"/>
+      <!--The skill level of the manager impacts the range at which wares can be reserved.-->
+      <set_value name="$skillDistance" exact="$stationManagerSkill / 3"/>
+
+      <set_value name="$stationList" exact="null"/>
+
+      <do_if value="$stationsToCalculate != null">
+        <set_value name="$stationList" exact="$stationsToCalculate"/>
+      </do_if>
+      <do_else>
+        <set_value name="$stationList" exact="$stationLogisticsData.$inRangeStations"/>
+      </do_else>
+      
+      <do_all exact="$stationList.count" counter="$counter">
+        <!--Only try to reserve at stations that are within the managers skill range-->
+        <do_if value="$stationList.{$counter}.jumpDistance le $skillDistance">
+          <run_script name="apsl.lib.ReserveSingleStationWares">
+            <param name="reserverStation" value="$stationLogisticsData.$station"/>
+            <param name="reverveeStationData" value="$stationList.{$counter}"/>
+            <param name="resourceData" value="$stationLogisticsData.$resourceData"/>           
+          </run_script>
+        </do_if>
+      </do_all>
+
+    </actions>
+  </attention>
+</aiscript>

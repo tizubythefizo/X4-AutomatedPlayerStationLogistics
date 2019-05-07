@@ -1,0 +1,91 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<aiscript name="apsl.lib.CalculateStationDistance" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="aiscripts.xsd" version="1">
+  <!--Calculates the distance between two stations. Both jump distance, and a calculated raw distance (sum of every distance to the end station, such as between gates)-->
+  <params>
+    <param name="startingStation" comment="REQUIRED! The station to start calculating distance from"/>
+    <param name="endingStation" comment="REQUIRED! The ending station to start calculating distance to"/>
+  </params>
+  <attention min="unknown">
+    <actions>
+      <set_value name="$successResult" exact="false"/>
+      <set_value name="$jumpDistanceResult" exact="-1"/>
+      <set_value name="$rawDistanceResult" exact="-1"/>
+      
+      <!--Parameter Validation-->
+      <do_if value="$startingStation.exists == false or $startingStation.isclass.station == false">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.CalculateStationDistance parameter startingStation either does not exist or was not a station!'"/>
+        <return>
+          <retval name="successResult" value="$successResult"/>
+          <retval name="jumpDistanceResult" value="$jumpDistanceResult"/>
+          <retval name="rawDistanceResult" value="$rawDistanceResult"/>
+        </return>
+      </do_if>
+      <do_if value="$endingStation.exists == false or $endingStation.isclass.station == false">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.CalculateStationDistance parameter startingStation either does not exist or was not a station!'"/>
+        <return>
+          <retval name="successResult" value="$successResult"/>
+          <retval name="jumpDistanceResult" value="$jumpDistanceResult"/>
+          <retval name="rawDistanceResult" value="$rawDistanceResult"/>
+        </return>
+      </do_if>
+      
+      <!--Check if they're in the same sector. If they are, jump distance is 0 and we can just get the raw distance between the two-->
+      <do_if value="$startingStation.sector == $endingStation.sector">
+        <set_value name="$jumpDistanceResult" exact="0"/>
+        <set_value name="$rawDistanceResult" exact="$startingStation.distanceto.{$endingStation}"/>
+        <set_value name="$successResult" exact="true"/>        
+      </do_if>
+      <do_else>
+        <!--Get the jump path, then create a list of sectors and the gates in that sector. Note for highways, an extra step has to be taken account of, because only the sectors are returned-->
+        <get_jump_path start="$startingStation.sector" end="$endingStation.sector" multiple="true" component="$jumpPath"/>
+        
+        <!--Call lib to get back a nice list of tables representing structures and such-->
+        <run_script name="apsl.lib.CompileJumpPathData">
+          <param name="pathList" value="$jumpPath"/>
+          <save_retval name="result" variable="$compiledJumpPath"/>
+        </run_script>
+
+        <!--Get these two into usable shape.-->
+        <set_value name="$jumpDistanceResult" exact="0"/>
+        <set_value name="$rawDistanceResult" exact="0"/>
+        
+        <!--Got the jump list. Now we can just loop through each part and get the distances. Do not add highways as a jump distance (if gateOutOf is a highway) but do count its raw.-->
+        <!-- Need to handle the two special cases, first and last elements which are station to gate/gate to station calculations.-->
+        <do_all exact="$compiledJumpPath.count" counter="$pathCounter">
+          
+          <do_if value="$pathCounter == 1">
+            <!--First element, no gateInto. Use starting station instead.-->
+            <set_value name="$rawDistanceResult" exact="$startingStation.distanceto.{$compiledJumpPath.{$pathCounter}.gateOutOf}" operation="add"/>
+
+            <do_if value="$compiledJumpPath.{$pathCounter}.gateOutOf.isclass.highwayentrygate == false">
+              <set_value name="$jumpDistanceResult" exact="1" operation="add"/>
+            </do_if>
+            
+          </do_if>
+          <do_elseif value="$pathCounter == $compiledJumpPath.count">
+            <!--Last element, no gateOutOf. Use ending station and gateInto instead.-->
+            <set_value name="$rawDistanceResult" exact="$endingStation.distanceto.{$compiledJumpPath.{$pathCounter}.gateInto}" operation="add"/>
+            <!--That's a wrap. No more jumps to try to count.-->
+          </do_elseif>
+          <do_else>
+            <!--Not the beginning or the end, so it'll always be gate to gate for distance.-->
+            <set_value name="$rawDistanceResult" exact="$compiledJumpPath.{$pathCounter}.gateInto.distanceto.{$compiledJumpPath.{$pathCounter}.gateOutOf}" operation="add"/>
+
+            <!--Again, if the next jump is through a highway, it doesn't count.-->
+            <do_if value="$compiledJumpPath.{$pathCounter}.gateOutOf.isclass.highwayentrygate == false">
+              <set_value name="$jumpDistanceResult" exact="1" operation="add"/>
+            </do_if>
+          </do_else>
+        </do_all>        
+      </do_else>
+
+      <set_value name="$successResult" exact="true"/>
+
+      <return>
+        <retval name="successResult" value="$successResult"/>
+        <retval name="jumpDistanceResult" value="$jumpDistanceResult"/>
+        <retval name="rawDistanceResult" value="$rawDistanceResult"/>
+      </return>
+    </actions>
+  </attention>
+</aiscript>

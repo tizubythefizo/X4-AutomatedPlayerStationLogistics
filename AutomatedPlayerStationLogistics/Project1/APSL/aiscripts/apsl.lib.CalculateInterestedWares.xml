@@ -1,0 +1,149 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<aiscript name="apsl.lib.CalculateInterestedWares" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="aiscripts.xsd" version="1">
+  <!--
+    This action function will find if the station of interest has any wares that are of interest to the seeking station, and if so add them to the result
+    table if they aren't already on it (result table can be an existing wares table passed in). Will prune goods that are no longer interesting.
+  -->
+  <params>
+    <param name="seekingStation" comment="REQUIRED! The station that is seeking to see if the other station has interested wares."/>
+    <param name="stationOfInterest" comment="REQUIRED! The station to look at and determine if it holds interested wares"/>
+    <param name="resourceData" comment="REQUIRED! The resource data table holding total reservations"/>
+    <param name="existingWareTable" default="null" comment="OPTIONAL! If a table to track wares already exists, it can be provided."/>
+    <param name="buyOffers" default="null" comment="OPTIONAL! The list of buy offers to use for determining relevant wares"/>
+  </params>
+  <attention min="unknown">
+    <actions>
+      <set_value name="$operationSuccessful" exact="false"/>
+      
+      <!--Parameter Validation-->
+      <do_if value="$seekingStation.exists == false or $seekingStation.isclass.station == false">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.CalculateInterestedWares parameter seekingStation either does not exist or was not a station!'"/>
+        <return>
+          <retval name="wasSuccessful" value="$operationSuccessful"/>
+          <retval name="result" value="null"/>
+        </return>
+      </do_if>
+      <do_if value="$stationOfInterest.exists == false or $stationOfInterest.isclass.station == false">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.CalculateInterestedWares parameter stationOfInterest either does not exist or was not a station!'"/>
+        <return>
+          <retval name="wasSuccessful" value="$operationSuccessful"/>
+          <retval name="result" value="null"/>
+        </return>
+      </do_if>
+      <do_if value="$existingWareTable != null and typeof $existingWareTable != datatype.table">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.CalculateInterestedWares parameter existingWareTable was passed in but was not a table!'"/>
+        <return>
+          <retval name="wasSuccessful" value="$operationSuccessful"/>
+          <retval name="result" value="null"/>
+        </return>
+      </do_if>
+      <do_if value="$resourceData != null and typeof $resourceData != datatype.table">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.CalculateInterestedWares parameter resourceData was passed in but was not a table!'"/>
+        <return>
+          <retval name="wasSuccessful" value="$operationSuccessful"/>
+          <retval name="result" value="null"/>
+        </return>
+      </do_if>
+      <do_if value="$buyOffers != null and typeof $buyOffers != datatype.list">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.CalculateInterestedWares parameter buyOffers was passed in but was not a list!'"/>
+        <return>
+          <retval name="wasSuccessful" value="$operationSuccessful"/>
+          <retval name="result" value="null"/>
+        </return>
+      </do_if>
+
+      <!--Main Logic-->
+      <do_if value="$existingWareTable == null">
+        <set_value name="$resultTable" exact="table[]"/>  
+      </do_if>
+      <do_else>
+        <set_value name="$resultTable" exact="$existingWareTable[]"/>
+      </do_else>
+      
+      <!--First get all the resources that are cared about that the station would be interested in-->
+      <find_sell_offer buyer="$seekingStation" seller="$stationOfInterest" multiple="true" excludeempty="false" result="$sellOffers" />
+      
+
+      <do_if value="$sellOffers.count lt 1">
+        <!-- If there was nothing found of interest, remove all existing entries in the table if they exist, as the station has nothing interesting anymore-->
+
+        <!--If the result table is already empty, no need to do anything. Otherwise need to remove all the entries.-->
+        <do_if value="$resultTable.keys.count ge 1">
+          <!--Since it's bad form to remove things from a list you're iterating over, build a second list of things to remove...-->          
+          <set_value name="$itemsToRemove" exact="$resultTable.clone"/>
+
+          <do_all exact="$itemsToRemove.keys.count" counter="$counter">
+            <!--Should probably check if there's a reservation amount and cancel the reservation...-->
+
+            <do_if value="$resultTable.{$itemsToRemove.keys{$counter}} ge 1">
+              <!--If there's any wares on reserve, cancel them before removing the ware.-->
+              <do_if value="$resourceData.{$itemsToRemove.keys.{$counter}}.$totalReservations gt 0">
+                <set_value name="$resourceData.{$itemsToRemove.keys.{$counter}}.$totalReservations" exact="$resultTable.{$itemsToRemove.keys.{$counter}}" operation="subtract"/>
+              </do_if>
+              <remove_ware_reservation object="$stationOfInterest" reserver="$seekingStation" ware="$itemsToRemove.keys{$counter}"/>
+            </do_if>
+            
+            <remove_value name="$resultTable.{$itemsToRemove.keys{$counter}}"/>             
+          </do_all>
+          
+        </do_if>
+      </do_if>
+      <do_else>
+        <!-- The station does have some interesting wares. Need to parse the results and add any to the result table that don't already exist.-->
+      </do_else>
+
+      <do_all exact="$sellOffers.count" counter="$offerCounter">
+        <!--If the wares are already tracked, do nothing. If they are not yet tracked, add them to the table-->
+        <do_if value="$resultTable.{$sellOffers.{$offerCounter}.ware}? == false">
+          <!-- Found one that's not tracked yet. Make sure it's a cargo ware.-->
+          <do_if value="$sellOffers.{$offerCounter}.ware.iscargo == true">
+            <!--Add it to the list to be tracked with a reservation amount of 0.-->
+            <set_value name="$resultTable.{$sellOffers.{$offerCounter}.ware}" exact="0"/>
+          </do_if>
+        </do_if>
+      </do_all>
+      
+      <!--Need to also prune the interested wares if there are now wares in the interested list that are not wanted by our home station...-->
+
+      <do_if value="$buyOffers == null">
+        <find_buy_offer buyer="$seekingStation" excludeempty="false" multiple="true" result="$buyOffers"/>
+      </do_if>
+      
+      <!--If it exists on the interestedWares table, but not on the seekingStation's buy offer list, nix it from interestedWares -->
+      <set_value name="$itemsToRemove" exact="$resultTable.clone"/>
+
+      <do_all exact="$itemsToRemove.keys.count" counter="$pruneCounter">
+        <set_value name="$wasFound" exact="false"/>
+
+        <!-- Inner loop to see if there's a matching item in the list (match means it stays)-->
+        <do_all exact="$buyOffers.count" counter="$inner">
+          <do_if value="$itemsToRemove.keys.{$pruneCounter} == $buyOffers.{$inner}.ware">
+            <set_value name="$wasFound" exact="true"/>
+            <break/>
+          </do_if>
+        </do_all>
+
+        <!--If it wasn't found in the buy offers, means it's no longer an interesting ware and we need to nix it.-->
+        <do_if value="$wasFound == false">
+          
+          <!-- Ware in interested but not in buy offers, need to remove from interested.-->
+          <do_if value="$resultTable.{$itemsToRemove.keys.{$pruneCounter}} ge 1">
+            <!-- Have reservations, need to cancel them-->
+            <do_if value="$resourceData.{$itemsToRemove.keys.{$pruneCounter}}.$totalReservations gt 0">
+              <set_value name="$resourceData.{$itemsToRemove.keys.{$pruneCounter}}.$totalReservations" exact="$resultTable.{$itemsToRemove.keys.{$pruneCounter}}" operation="subtract"/>
+            </do_if>
+            
+            <remove_ware_reservation object="$stationOfInterest" reserver="$seekingStation" ware="$itemsToRemove.keys{$pruneCounter}"/>
+          </do_if>
+
+          <remove_value name="$resultTable.{$itemsToRemove.keys{$pruneCounter}}"/>
+        </do_if>        
+      </do_all>
+      
+      <return>
+        <retval name="wasSuccessful" value="$operationSuccessful"/>
+        <retval name="result" value="$resultTable"/>
+      </return>
+    </actions>
+  </attention>
+</aiscript>

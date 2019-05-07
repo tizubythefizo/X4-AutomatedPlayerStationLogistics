@@ -1,0 +1,78 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<aiscript name="apsl.lib.SyncReservations" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="aiscripts.xsd" version="1">
+  <!--
+    This script will call to prune wares the station is no longer interested in (if there are any) and then sync the resource data reservations to the
+    individual station reservations (summed up). These should normally not fall out of sync, however some rare edge cases may cause for that to happen.
+  -->
+  <params>
+    <param name="resourceData" comment="REQUIRED! The resource data table that holds all the reservations"/>
+    <param name="inRangeStations" comment="REQUIRED! The list of interested stations to sync."/>
+    <param name ="station"  comment="The station that needs its reverves synced"/>
+    <param name="buyOffers" default="null" comment="Optional: Uses the provided buy offer list to determine resources if provided. Will run a new find_buy_offers if not"/>
+  </params>
+  <attention min="unknown">
+    <actions>
+      <set_value name="$successResult" exact="false"/>
+
+      <!--Parameter Validation-->
+      <do_if value="$resourceData? == false or typeof $resourceData != datatype.table">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.SyncReservations parameter resourceData either does not exist or was not a table!'"/>
+        <return>
+          <retval name="wasSuccessful" value="$successResult"/>
+        </return>
+      </do_if>
+      <do_if value="$inRangeStations? == false or typeof $inRangeStations != datatype.list">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.SyncReservations parameter inRangeStations either does not exist or was not a list!'"/>
+        <return>
+          <retval name="wasSuccessful" value="$successResult"/>
+        </return>
+      </do_if>
+      <do_if value="$station == null  or typeof $station.isclass.station != true">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.SyncReservations parameter station either does not exist or was not a station!'"/>
+        <return>
+          <retval name="wasSuccessful" value="$successResult"/>
+        </return>
+      </do_if>
+      <do_if value="$buyOffers != null and typeof $buyOffers != datatype.list">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.SyncReservations parameter buyOffers either does not exist or was not a list!'"/>
+        <return>
+          <retval name="wasSuccessful" value="$successResult"/>
+        </return>
+      </do_if>
+      <!--Main Logic-->
+      <set_value name="$successResult" exact="false"/>
+
+      <do_if value="$buyOffers == null">
+        <find_buy_offer buyer="$station" excludeempty="false" multiple="true" result="$buyOffers"/>
+      </do_if>
+
+      <!--First, prune resource data. -->
+      <run_script name="apsl.lib.PruneResourceData">
+        <param name="resourceData" value="$resourceData"/>
+        <param name="buyOffers" value="$buyOffers"/>
+        <param name="interestedStationsData" value="$inRangeStations"/>
+        <param name="station" value="$station"/>
+      </run_script>
+
+      <!-- Next, go through each buy offer (that iscargo) amd for each one check the stations with interested wares. Sum all the reservations up and check them against resourceData. Fix any descrepencies-->
+      <do_all exact="$buyOffers" counter="$buyCounter">
+        <set_value name="$reservationSum" exact="0"/>
+
+        <do_all exact="$inRangeStations.count" counter="$innerCounter">
+          <do_if value="$inRangeStations.{$innerCounter}.$interestedWares.{$buyOffers.{$buyCounter}.ware}? == true">
+            <set_value name="$reservationSum" exact="$inRangeStations.{$innerCounter}.$interestedWares.{$buyOffers.{$buyCounter}.ware}" operation="add"/>
+          </do_if>
+        </do_all>
+
+        <set_value name="$resourceData.{$buyOffers.{$buyCounter}.ware}.$totalReservations" exact="$reservationSum"/>
+
+      </do_all>
+
+      <set_value name="$successResult" exact="true"/>
+
+      <return>
+        <retval name="wasSuccessful" value="$successResult"/>
+      </return>
+    </actions>
+  </attention>
+</aiscript>

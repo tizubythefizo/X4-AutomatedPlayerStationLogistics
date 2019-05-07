@@ -1,0 +1,99 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<aiscript name="apsl.lib.EvaluateLogistics" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="aiscripts.xsd" version="1">
+  <params>
+    <param name="stationLogisticsData" comment="REQUIRED: All the logistics data for the station that needs logistics evaluation"/>
+    <param name="stationManagerSkill" comment="REQUIRED: The skill of the manager"/>
+    <param name="buyOffers" comment="Optional! The buy orders to use for evaluation. Will create its own if not passed in."/>
+    <param name="stationsToCalculate" default="null" comment="Optional! If provided, only these stations will have their wares reserved"/>
+  </params>
+  <attention min="unknown">
+    <actions>
+      <set_value name="$successResult" exact="false"/>
+      
+      <!--Parameter Validation-->
+      <do_if value="$stationLogisticsData? == false or typeof $stationLogisticsTable != datatype.table">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.EvaluateLogistics parameter stationLogisticsData either does not exist or was not a table!'"/>
+        <return>
+          <retval name="wasSuccessful" value="$successResult"/>
+        </return>
+      </do_if>
+      <do_if value="$stationManagerSkill? == false or typeof $stationManagerSkill != datatype.integer">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.EvaluateLogistics parameter stationManagerSkill either does not exist or was not an integer!'"/>
+        <return>
+          <retval name="wasSuccessful" value="$successResult"/>
+        </return>
+      </do_if>
+      <do_if value="$buyOffers != null and typeof $buyOffers != datatype.list">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.EvaluateLogistics parameter buyOffers was not a list!'"/>
+        <return>
+          <retval name="wasSuccessful" value="$successResult"/>
+        </return>
+      </do_if>
+      <do_if value="$stationsToCalculate != null and typeof $stationsToCalculate != datatype.list">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.EvaluateLogistics parameter stationsToCalculate was not a list!'"/>
+        <return>
+          <retval name="wasSuccessful" value="$successResult"/>
+        </return>
+      </do_if>
+      
+      <!--Main Logic-->
+      <!--TODO: Get the success result of each script called, and if any one is false mark the whole thing as failed.-->
+      <set_value name="$successResult" exact="true"/>
+
+      <do_if value="$buyOffers == null">
+        <find_buy_offer buyer="$station" excludeempty="false" multiple="true" result="$buyOffers"/>
+      </do_if>
+      
+      <!--First determine resource priorities (lib function)-->
+      <run_script name="apsl.lib.DetermineResourcePriorities">
+        <param name="stationLogisticsData" value="$stationLogisticsData"/>
+      </run_script>
+      
+      <!--Next, refresh current reservation amounts for wares. This shouldn't fall out of sync, since <get_ware_reservation> is a thing.-->
+      <!--Yep, need to keep track myself. Get ware reservation only works for stations where the reservation is, apparently.-->
+      <run_script name="apsl.lib.SyncReservations">
+        <param name="resourceData" value="$stationLogisticsData.$resourceData"/>
+        <param name="inRangeStations" value="$stationLogisticsData.$inRangeStations"/>
+        <param name="station" value="$stationLogisticsData.station"/>
+        <param name="buyOffers" value="$buyOffers"/>
+      </run_script>
+
+
+      <!--Need to create a script to check all interested wares-->            
+      <run_script name="apsl.lib.CalculateAllInRangeStationWares">
+        <param name="resourceData" value="$stationLogisticsData.$resourceData"/>
+        <param name="station" value="$stationLogisticsData.$station"/>
+        <param name="inRangeStations" value="$stationLogisticsData.$stationsInRange"/>
+        <param name="buyOffers" value="$buyOffers"/>        
+      </run_script>      
+      
+      <!--Next, evaluate criticality-->
+      <run_script name="apsl.lib.EvaluateResourceCriticality">
+        <param name="stationLogisticsData" value="$stationLogisticsData"/>
+        <param name="criticalityLevel" value="0.1f"/>
+        <param name="buyOffers" value="$buyOffers"/>
+      </run_script>      
+      
+      <!--Finally, for each resource (starting from highest priority from above check) for all stations in *skill* range (skill / 3) try to reserve wares until demand is satisfied-->
+      <!--Probably want a lib action for the above and to 1 by 1 it so as to not lock up the game.-->
+      <!-- Note that I'm probably going to want to cap reservations to like 90% of target stock (maybe 80) during normal operations, and slice it down to 50% if a ware is critical-->
+      <do_if value="$stationsToCalculate != null">
+        <run_script name="apsl.lib.ReserveStationWares">
+          <param name="stationLogisticsData" value="$stationLogisticsData"/>
+          <param name="stationManagerSkill" value="$stationManagerSkill"/>
+          <param name="stationsToCalculate" value="$stationsToCalculate"/>
+        </run_script>
+      </do_if>
+      <do_else>
+        <run_script name="apsl.lib.ReserveStationWares">
+        <param name="stationLogisticsData" value="$stationLogisticsData"/>
+        <param name="stationManagerSkill" value="$stationManagerSkill"/>
+      </run_script>
+      </do_else>      
+
+      <return>
+        <retval name="wasSuccessful" value="$successResult"/>
+      </return>
+    </actions>
+  </attention>
+</aiscript>

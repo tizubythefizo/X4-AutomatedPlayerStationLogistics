@@ -1,0 +1,127 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<aiscript name="apsl.lib.ReserveSingleStationWares" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="aiscripts.xsd" version="1">
+  <params>
+    <param name="reserverStation" comment="REQUIRED! The reserving station"/>
+    <param name="reverveeStationData" comment="REQUIRED! The station to reserve wares at"/>
+    <param name="resourceData" comment="REQUIRED! The reserving station's resource data"/>
+  </params>
+  <attention min="unknown">
+    <actions>
+      <!--Unlike most, this is true by default. Because not finding anything to do is a valid result.-->
+      <set_value name="$successResult" exact="true"/>
+      
+      <!--Parameter Validation-->
+      <do_if value="$reserverStation? == false or typeof $reserverStation.isclass.station == false">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.ReserveSingleStationWares parameter reserverStation either does not exist or was not a station!'"/>
+        <set_value name="$successResult" exact="false"/>
+        <return>
+          <retval name="wasSuccessful" value="$successResult"/>
+        </return>
+      </do_if>
+      <do_if value="$reverveeStationData? == false or typeof  $reverveeStationData != datatype.table">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.ReserveSingleStationWares parameter reverveeStation either does not exist or was not a station!'"/>
+        <set_value name="$successResult" exact="false"/>
+        <return>
+          <retval name="wasSuccessful" value="$successResult"/>
+        </return>
+      </do_if>
+      <do_if value="$resourceData != null and typeof $resourceData != datatype.table">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.ReserveSingleStationWares parameter resourceData was passed in but was not a table!'"/>
+        <set_value name="$successResult" exact="false"/>
+        <return>
+          <retval name="wasSuccessful" value="$operationSuccessful"/>
+          <retval name="result" value="null"/>
+        </return>
+      </do_if>
+      
+      
+      <!--Main Logic-->
+      <!--If the station has any wares we're interested in only-->
+      <do_if value="$reverveeStationData.$interestedWares.keys.count ge 1">
+        
+        <!--Loop through the interested wares table and for each interested ware see if we need to reserve more wares here.-->
+        <do_all exact="$reverveeStationData.$interestedWares.keys.count" counter="$counter">
+          <!--Sanity shortcut to the ware we care about-->
+          <set_value name="$interestedWare" exact="$reverveeStationData.$interestedWares.keys.{$counter}"/>
+          
+          <!--Find the relevant buy offer and sell offer-->
+          <find_buy_offer buyer="$reserverStation" wares="$interestedWare" result="$foundBuyOffer" />
+
+          <do_if value="$foundBuyOffer == null">
+            <continue/>
+          </do_if>
+
+          <find_sell_offer seller="$reverveeStationData.$station" wares="$interestedWare" result="$foundSellOffer" />
+
+          <do_if value="$foundSellOffer == null">
+            <continue/>
+          </do_if>          
+          
+          <!--
+              Ok, we have a good sell and buy offer.
+              To figure out if we  need to reserve the ware, find out if we're critical or not. If we are critical we'll want to make sure we don't reserve more than 50% of the target stock.
+              If not critical, we'll want to reserve no more than 90% of the target stock. 
+          -->
+          <set_value name="$maxReserveAmount" exact="0"/>
+
+          <do_if value="$resourceData.{$interestedWare}.isCritical == true">
+            <set_value name="$maxReserveAmount" exact="($reserverStation.cargo.{$interestedWare}.target * 0.5f)i"/>
+          </do_if>
+          <do_else>
+            <set_value name="$maxReserveAmount" exact="($reserverStation.cargo.{$interestedWare}.target * 0.9f)i"/>
+          </do_else>
+          
+          <!--If total reservation amounts are already at the max reserve amount, peace out to next.-->
+          <do_if value="$resourceData.{$interestedWare}.$totalReservations ge $maxReserveAmount">
+            <continue/>
+          </do_if>
+          
+          <!--
+              Ok, so we've made it this far. We've got good buy/sell offers, and haven't reserved our max amount yet. Need to do some math to figure out how many I can reserve.
+              Find the difference between total reservations and maxReserveAmount. That will be the absolute max this particular trade can be. Then pick either that amount or
+              the amount the station has on offer. Double check that against the buy offer to make sure we actually want that many. If Buy offers are lower, just reserve the buy offer
+              amount.
+          -->
+          <set_value name="$maxTradeAmount" exact="$maxReserveAmount - $resourceData.{$interestedWare}.$totalReservations"/>
+
+          <do_if value="$maxTradeAmount le 0">
+            <debug_to_file name="'apsl.log'" text="'WARNING - apsl.lib.ReserveSingleStationWares maxTradeAmount (max reserve - total reservations for a ware) was 0 or less. Should not be possible, something is amiss'"/>
+            <continue/>
+          </do_if>
+
+          <do_if value="$maxTradeAmount gt $foundBuyOffer.amount">
+            <!--Just some additional security. This case shouldn't happen, but if it does cap the max trade amount to the buy offer amount.-->
+            <set_value name="$maxTradeAmount" exact="$foundBuyOffer.amount"/>
+          </do_if>
+
+          <set_value name="$desiredReserveAmount" exact="0"/>
+
+          <!--If the station has enough on offer to satisfy the max trade amount, we'll want to reserve max trade amount. If not, we'll want to reserve all available for offer.-->
+          <do_if value="$maxTradeAmount le $foundSellOffer.amount">
+            <set_value name="$desiredReserveAmount" exact="$maxTradeAmount"/>
+          </do_if>
+          <do_else>
+            <set_value name="$desiredReserveAmount" exact="$foundSellOffer.amount"/>
+          </do_else>
+          
+          <!--Ok, reservation time!-->
+          <add_ware_reservation reserver="$reserverStation" object="$reverveeStationData.$station" ware="$interestedWare" amount="$desiredReserveAmount" type="buy" duration="9999h" result="$reservedAmount"/>
+          
+          <!--Final check to make sure reservedAmount matches up with the station's reserved amount for that ware-->
+          <set_value name="$reverveeStationData.$interestedWares.{$interestedWare}" exact="$desiredReserveAmount" operation="add"/>
+
+          <do_if value="$reverveeStationData.$interestedWares.{$interestedWare} != $reservedAmount">
+            <debug_to_file name="'apsl.log'" text="'WARNING - apsl.lib.ReserveSingleStationWares - reservedAmount for station did not sync with the desired amount + existing amount. resourcceData total for this ware likely to fall out of sync.'"/>
+            <set_value name="$reverveeStationData.$interestedWares.{$interestedWare}" exact="$reservedAmount"/>
+          </do_if>
+          
+          <set_value name="$resourceData.{$interestedWare}.$totalReservations" exact="$desiredReserveAmount" operation="add"/>          
+        </do_all>        
+      </do_if>
+
+      <return>
+        <retval name="wasSuccessful" value="$successResult"/>
+      </return>
+    </actions>
+  </attention>
+</aiscript>

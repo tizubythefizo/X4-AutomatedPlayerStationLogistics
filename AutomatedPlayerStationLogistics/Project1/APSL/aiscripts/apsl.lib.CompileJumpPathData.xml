@@ -1,0 +1,177 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<aiscript name="apsl.lib.CompileJumpPathData" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="aiscripts.xsd" version="1">
+  <params>
+    <param name="pathList" comment="REQUIRED! The list returned from get_jump_path"/>
+  </params>
+  <attention min="unknown">
+    <actions>
+      <set_value name="$wasSuccessful" exact="false"/>
+      <set_value name="$resultData" exact="null"/>
+
+      <!--Parameter Validation-->
+      <do_if value="$pathList == null or $pathList.count lt 1">
+        <debug_to_file name="'apsl.log'" text="'ERROR! alsp.lib.CompileJumpPathData parameter pathList either does not exist or was empty!'"/>
+        <return>
+          <retval name="wasSuccessful" value="$wasSuccessful"/>
+          <retval name="result" value="$resultData"/>
+        </return>
+      </do_if>
+      
+      <!--Main Logic-->
+      <set_value name="$resultData" exact="[]"/>
+      <!--
+        Convert the flat path list into a list of sectors which track any relevant gates within the sector. This will normally be an exit gate (from previous
+        sector) or an entry gate (in the current sector to the next). It is also possible that 2 sectors in a row happen, in which case it means a superhighway
+        bridging two sectors.
+        
+        The first sector and last sector will each only have 1 gate/highway entrance.
+      -->
+      <do_all exact="$pathList.count" counter="$pathListCounter">
+        <!--First check to see if we're at the end of the list. The last element should always be a sector, and the sector before it either
+            a gate/accelerator, or another sector
+            Structure of table is sector, gateInto, gateOutOf
+        -->
+
+        <set_value name="$sectorData" exact="table[]"/>
+
+        <!--
+          The logic flow here is pretty complicated. This is a high level overview. Each iteration there are 2 main paths, one for if the current element is a sector, one if it's not.
+          If it's a sector, that means it's either the first entry, the second sector in a highway connection, or the last sector if it is also the second in a highway connection.
+          The whole first big block (the main do_if) handles those cases.
+          
+          The second big block (do_else) means the iteration element is a gate or accelerator (since the only things in the path list are sectors, gates, and accelerators). It also
+          needs to figure out and handle if going to the next sector is a highway, gate situation, or the end of the road. There's some small 1-2 line blocks that are the same between
+          the major first and second half. I tried to reduce code duplication as much as possible, but without actual functions it wasn't possible to completely do it. I broke out the
+          largest bit of repeated complex code (searching for the correct highwar entry/exit gate) into its own library action function.
+        -->
+        <do_if value="$pathList.{$pathListCounter}.isclass.sector">
+          <!--We landed on a sector, which means we're either in the very first element, or handling a highway connection-->
+          <do_if value="$pathListCounter == 1">
+            <!-- First case, no gate into-->
+            <set_value name="$sectorData.$gateInto" exact="null"/>
+            <set_value name="$sectorData.$sector" exact="$pathList.{$pathListCounter}"/>
+            
+            <!-- Need to do the + 1 check. If it's a sector, that means it's a highway connection and not a jump. Need to handle it.-->
+            <do_if value="$pathList.{$pathListCounter + 1}.isclass.sector">
+              
+              <run_script name="apsl.lib.GetHighwayPoints">
+                <param name="startingSector" value="$pathList.{$pathListCounter}" />
+                <param name="endingSector" value="$pathList.{$pathListCounter + 1}" />
+                <save_retval name="entrance" variable="$gateEntry"/>
+                <save_retval name="exit" variable="$highwayExit"/>
+              </run_script>
+
+              <set_value name="$sectorData.$gateOutOf" exact="$gateEntry"/>
+
+              <!--We want the iteration to continue to the next (which is the next sector)-->
+              <set_value name="$counterJump" exact="0"/>
+              <!-- Cleanup-->
+              <remove_value name="$gateEntry"/>
+            </do_if>
+            <do_else>
+              <!-- Next entry is a gate, so the normal use case applies. Add the gate as the sector exit, and move the counter jump to +1 so it skips said gate.-->
+              <set_value name="$sectorData.$gateOutOf" exact="$pathList.{$pathListCounter + 1}"/>
+              <set_value name="$counterJump" exact="1"/>
+            </do_else>
+            
+          </do_if>
+          <do_else>
+            <!-- Highway connection, part two. Should be an existing variable that's tracking the highway exit.-->
+            <set_value name="$sectorData.$gateInto" exact="$highwayExit"/>
+            <remove_value name="$highwayExit"/>
+
+            <set_value name="$sectorData.$sector" exact="$pathList.{$pathListCounter}"/>
+
+            
+            <do_if value="$pathlist.count == $pathListCounter">
+              <!--Nothing else to do. This is the end of the line. There is no next sector to check.-->
+              <set_value name="$sectorData.$gateOutOf" exact="null"/>
+              <set_value name="$counterJump" exact="0"/>
+            </do_if>
+            <do_elseif value="$pathList.{$pathListCounter + 1}.isclass.sector">
+              <!--If the next is a sector, need to get the highway entries, and set the entry gate to this iterations table, and prep for the next iteration.-->
+              <run_script name="apsl.lib.GetHighwayPoints">
+                <param name="startingSector" value="$pathList.{$pathListCounter}" />
+                <param name="endingSector" value="$pathList.{$pathListCounter + 1}" />
+                <save_retval name="entrance" variable="$gateEntry"/>
+                <save_retval name="exit" variable="$highwayExit"/>
+              </run_script>
+
+              <set_value name="$sectorData.$gateOutOf" exact="$gateEntry"/>
+
+              <!--We want the iteration to continue to the next (which is a sector)-->
+              <set_value name="$counterJump" exact="0"/>
+              <!-- Cleanup-->
+              <remove_value name="$gateEntry"/>
+            </do_elseif>
+            <do_else>
+              <!--The next element is a gate, which means it's our entry to the next sector-->
+              <set_value name="$sectorData.$gateOutOf" exact="$pathList.{$pathListCounter + 1}"/>
+              <!--
+                  Counter jump plus 1, which before the end of this iteration puts the counter to the just gotten sector. Then when the next iteration starts
+                  it'll +1 again, putting it to the entry gate for the next sector.
+                -->
+              <set_value name="$counterJump" exact="1"/>
+            </do_else>
+          </do_else>
+        </do_if>
+        <do_else>
+          <!--Normal course, it's a gate. -->
+          <set_value name="$sectorData.$gateInTo" exact="$pathList.{$pathListCounter}"/>
+          <!-- +1 will be the sector, and +2 will be either a gate or a sector, or it won't exist. The +1 could be the last element, so check for that-->
+          <set_value name="$sectorData.$sector" exact="$pathList.{pathListCounter + 1}"/>
+
+          <do_if value="($pathListCounter + 1) == $pathList.count">
+            <!--End of the road. No exit gate, so just set the counter jump to + 1, which should cause the loop to end after this iteration.-->            
+            <set_value name="$sectorData.$gateOutOf" exact="null"/>
+            <set_value name="$counterJump" exact="1" />
+            <!--Note cause I got confused (complex logic here). If $pathCounter + 1 is not the end of the road, then it's guaranteed there will be a + 2-->
+          </do_if>
+          <do_elseif value="$pathList.{pathListCounter + 2}.isclass.sector">
+
+            <!-- At this point, this element is NOT a sector, it's a gate/accelerator. So the sector (+1) is the sector for this gate.-->
+            <!--
+                If the element at +2 is another sector, than it's a highway. I'll need to call the lib action to figure out the highways entry/exit.
+                The gateOutOf here becomes the exit gate, and counter jump will need to be set to land on the next sector. The exit gate (which is gateInto for
+                the next sector) will need to be set into a temp variable so it can be accessed in the next iteration.
+              -->
+            <run_script name="apsl.lib.GetHighwayPoints">
+              <param name="startingSector" value="$pathList.{$pathListCounter}" />
+              <param name="endingSector" value="$pathList.{$pathListCounter + 1}" />
+              <save_retval name="entrance" variable="$gateEntry"/>
+              <save_retval name="exit" variable="$highwayExit"/>
+            </run_script>
+            
+            <set_value name="$sectorData.$gateOutOf" exact="$gateEntry"/>
+            <!--We want the iteration to continue to the sector at +2, so just need to jump by 1 to accomplish that.-->
+            <set_value name="$counterJump" exact="1"/>
+            <!-- Cleanup-->
+            <remove_value name="$gateEntry"/>            
+          </do_elseif>
+          <do_else>
+            <!-- Normal operation, +2 is a gate which is the entry to the next section. Grab it and advance the counter to the gate after it.-->
+            <set_value name="$sectorData.$gateOutOf" exact="$pathList.{pathListCounter + 2}"/>
+
+            <!--Set to +2 so the iteratation counter will jump to the gate after the one we just assigned.-->
+            <set_value name="$counterJump" exact="2" />
+          </do_else>
+        </do_else>
+
+        <append_to_list name="$resultData" exact="$sectorData"/>
+        
+        <set_value name="$pathListCounter" exact="$counterJump" operation="add"/>
+        <set_value name="$counterJump" exact="0"/>        
+
+        <remove_value name="$sectorData"/>
+      </do_all>
+
+      <!-- Presumably if we got here, there were no errors. I don't fully know how expression syntax errors are handled. I would hope it would abort the script-->
+      <set_value name="$wasSuccessful" exact="true"/>
+
+      <return>
+        <retval name="wasSuccessful" value="$wasSuccessful"/>
+        <retval name ="result" value="$resultData"/>
+      </return>
+    </actions>
+  </attention>
+</aiscript>

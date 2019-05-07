@@ -1,0 +1,41 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<aiscript name="apsl.lib.CheckIfStationInRangeIsAlreadyTracked" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="aiscripts.xsd" version="1">
+  <!--
+    Checks if a given station already exists in one of the InRangeStations buckets. Returns true if it does, or false if it does not.
+  -->
+  <params>
+    <param name="station" comment="REQUIRED: The station to check as being already tracked."/>
+    <param name="inRangeStationsTable" comment="REQUIRED! The table of the station doing the checking that tracks stations in range."/>
+  </params>
+  <attention min="unknown">
+    <actions>
+      <set_value name="$result" exact="false"/>
+      
+      <!--Paramater validation-->
+      <do_if value="$station.exists == false or $station.isclass.station == false">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.CheckIfStationInRangeIsAlreadyTracked parameter station either does not exist or was not a station!'"/>
+      </do_if>
+      <do_if value="$inRangeStations == null or typeof $inRangeStations != datatype.list">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.CheckIfStationInRangeIsAlreadyTracked parameter inRangeStations either does not exist or was not a list!'"/>
+        
+        <return>
+          <retval name="checkResult" value="$result"/>
+        </return>
+      </do_if>
+      
+      <!-- Ok, at this point we've got a good inRangeSections table, and at least one of intereested wares list or without interested wares list exists.-->
+      <do_if value="$inRangeStations.count gt 0">
+        <do_all exact="$inRangeStations.count" counter="$counter">
+          <do_if value="$inRangeStations.{$counter}.$station == $station">
+            <set_value name="$result" exact="true"/>
+          </do_if>
+        </do_all>
+      </do_if>      
+
+      <return>
+        <retval name="checkResult" value="$result"/>
+      </return>
+      
+    </actions>
+  </attention>
+</aiscript>

@@ -1,0 +1,35 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  Will create the APSL master table if it doesn't already exist.
+-->
+<aiscript name="apsl.lib.createApslMasterTable" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="aiscripts.xsd" version="1">
+  <attention min="unknown">
+    <actions>
+      <!-- return value for if successful. Only false if the table could not be created. -->
+      <set_value name="$result" exact="false"/>
+
+      <do_if value="global.$apslData? == false">
+        <set_value name="global.$apslData" exact="table[]"/>
+        <set_value name="global.$apslData.$stationLogisticsData" exact="table[]"/>
+        <set_value name="global.$apslData.$debugToFile" exact="false"/>
+
+        <!--
+            Necessary for a rare edge case where stations poof out of existence via API instead of normal means,
+            such as someone using CheatMenu to delete stations.
+        -->
+        <create_group groupname="$trackedStationsGroup"/>
+        <set_value name="global.$apslData.$stationLogisticsData.$stationsGroup" exact="$trackedStationsGroup"/>
+        <!--This will need to be synced to how I handle max ranges. Currently planned for just manager stars (so 5) -->
+        <set_value name="global.$apslData.$stationLogisticsData.$absoluteMaxStationRange" exact="5"/>
+        <set_value name="global.$apslData.$stationLogisticsData.$resourceCriticalityThreshold" exact="0.10f"/>
+        <set_value name="global.$apslData.$stationLogisticsData.$maxReservationLimit" exact="0.9f"/>
+        
+        <set_value name="$result" exact="true"/>        
+      </do_if>
+
+      <return>
+        <retval name="wasSuccessful" value="$result"/>
+      </return>
+    </actions>
+  </attention>
+</aiscript>

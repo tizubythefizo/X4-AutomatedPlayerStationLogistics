@@ -34,6 +34,49 @@
   </PropertyGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <None Include="APSL\aiscripts\aiscripts.xsd">
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="APSL\md\md.xsd">
+      <SubType>Designer</SubType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="APSL\aiscripts\apsl.lib.AddNewStationToInterestedWaresList.xml" />
+    <Content Include="APSL\aiscripts\apsl.lib.CalculateAllInRangeStationWares.xml" />
+    <Content Include="APSL\aiscripts\apsl.lib.CalculateInterestedWares.xml" />
+    <Content Include="APSL\aiscripts\apsl.lib.CheckInZonePlayerStations.xml" />
+    <Content Include="APSL\aiscripts\apsl.lib.CompileJumpPathData.xml" />
+    <Content Include="APSL\aiscripts\apsl.lib.CalculateStationDistance.xml" />
+    <Content Include="APSL\aiscripts\apsl.lib.CheckIfStationInRangeIsAlreadyTracked.xml" />
+    <Content Include="APSL\aiscripts\apsl.lib.CreateApslMasterTable.xml" />
+    <Content Include="APSL\aiscripts\apsl.lib.CreateNewStationEntry.xml" />
+    <Content Include="APSL\aiscripts\apsl.lib.DetermineResourcePriorities.xml" />
+    <Content Include="APSL\aiscripts\apsl.lib.EvaluateLogistics.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="APSL\aiscripts\apsl.lib.EvaluateResourceCriticality.xml" />
+    <Content Include="APSL\aiscripts\apsl.lib.GetHighwayPoints.xml" />
+    <Content Include="APSL\aiscripts\apsl.lib.GetStationData.xml" />
+    <Content Include="APSL\aiscripts\apsl.lib.ProcessAllStationsInRange.xml" />
+    <Content Include="APSL\aiscripts\apsl.lib.ProcessNewInRangeStation.xml" />
+    <Content Include="APSL\aiscripts\apsl.lib.ReserveSingleStationWares.xml" />
+    <Content Include="APSL\aiscripts\apsl.lib.ReserveStationWares.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="APSL\aiscripts\apsl.lib.PruneResourceData.xml" />
+    <Content Include="APSL\aiscripts\apsl.lib.StationShutdown.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="APSL\aiscripts\apsl.lib.SyncReservations.xml" />
+    <Content Include="APSL\aiscripts\apsl.Player.Interaction.StationMoneyTransfer.xml" />
+    <Content Include="APSL\aiscripts\apsl.Station.LogisticsManager.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="APSL\aiscripts\trade.station.xml" />
+    <Content Include="APSL\content.xml" />
+    <Content Include="APSL\md\ApslStartup.xml" />
+    <Content Include="APSL\t\0001.xml" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

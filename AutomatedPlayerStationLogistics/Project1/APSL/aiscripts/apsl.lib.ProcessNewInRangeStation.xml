@@ -1,0 +1,83 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<aiscript name="apsl.lib.ProcessNewInRangeStation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="aiscripts.xsd" version="1">
+  <params>
+    <param name="newStation" comment="REQUIRED: The station to check as being already tracked."/>
+    <param name="stationLogisticsTable" comment="REQUIRED! The logistics table for the station doing the processing"/>
+  </params>
+  <attention min="unknown">
+    <actions>
+      <set_value name="$result" exact="false"/>
+      <set_value name="$stationAlreadyExisted" exact="false"/>
+
+      <!--Paramater validation-->
+      <do_if value="$newStation.exists == false or $station.isclass.station == false">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.CheckIfStationInRangeIsAlreadyTracked parameter station either does not exist or was not a station!'"/>
+        <return>
+          <retval name="wasSuccessful" value="$result"/>
+          <retval name="didStationAlreadyExist" value="$stationAlreadyExisted"/>
+        </return>
+      </do_if>
+      <do_if value="$stationLogisticsTable == null or typeof $stationLogisticsTable != datatype.table">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.CheckIfStationInRangeIsAlreadyTracked parameter stationLogisticsTable either does not exist or was not a table!'"/>
+        <return>
+          <retval name="wasSuccessful" value="$result"/>
+          <retval name="didStationAlreadyExist" value="$stationAlreadyExisted"/>
+        </return>
+      </do_if>
+
+      <!-- Check if the station already exists in tracked table. If it does we'll want to nope right on out of here.-->
+      <run_script name="apsl.lib.CheckIfStationInRangeIsAlreadyTracked">
+        <param name="station" value="$newStation"/>
+        <param name="inRangeStationsTable" value="$stationLogisticsTable.$stationsInRange"/>
+        <save_retval name="checkResult" variable="$stationAlreadyTracked"/>
+      </run_script>
+
+      <do_if value="$stationAlreadyTracked == true">
+        <set_value name="$result" exact="false"/>
+        <set_value name="$stationAlreadyExisted" exact="true"/>
+        <return>
+          <retval name="wasSuccessful" value="$result"/>
+          <retval name="didStationAlreadyExist" value="$stationAlreadyExisted"/>
+        </return>
+      </do_if>
+
+      <!-- Determine if new station has any wares that are cared about. If it either produces cared about wares, or has them for sale we care. -->
+
+      <!-- main station has some crap it wants, so now we check to see if the new station produces it or sells it-->
+      <run_script name="apsl.lib.CalculateInterestedWares">
+        <param name="seekingStation" value="$stationLogisticsTable.$station"/>
+        <param name="stationOfInterest" value="$newStation"/>
+        <param name="resourceData" value="$stationLogisticsTable.$resourceData"/>
+        <save_retval name="result" variable="$interestedWaresTable"/>
+      </run_script>
+
+      <!-- Create the table, fill out its distance data(lib action), interested wares, and insert it into stationsWithInterestedWares table(lib action)-->
+      <set_value name="$interestingStationTable" exact="table[]"/>
+      <set_value name="$interestingStationTable.$station" exact="$newStation" />
+      <set_value name="$interestingStationTable.$interestedWares" exact="$interestedWaresTable" />
+
+      <run_script name="apsl.lib.CalculateStationDistance">
+        <param name="startingStation" value="$stationLogisticsTable.$station"/>
+        <param name="endingStation" value="$newStation"/>
+        <save_retval name="jumpDistanceResult" variable="$jumpDistance"/>
+        <save_retval name="rawDistanceResult" variable="$rawDistance"/>
+      </run_script>
+
+      <set_value name="$interestingStationTable.$rawDistance" exact="$rawDistance"/>
+      <set_value name="$interestingStationTable.$jumpDistance" exact="$jumpDistance"/>
+
+
+      <run_script name="apsl.lib.AddNewStationToInterestedWaresList">
+        <param name="interestingStationData" value="$interestingStationTable"/>
+        <param name="interestingStationsList" value="$stationLogisticsTable.$stationsInRange"/>
+      </run_script>
+
+      <set_value name="$result" exact="true"/>
+
+      <return>
+        <retval name="wasSuccessful" value="$result"/>
+        <retval name="didStationAlreadyExist" value="$stationAlreadyExisted"/>
+      </return>
+    </actions>
+  </attention>
+</aiscript>

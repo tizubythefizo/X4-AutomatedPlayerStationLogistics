@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<mdscript name="ApslStartup" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="md.xsd">
+  <cues>
+    <cue name="ApslMasterDataCheck" version="1">
+      <conditions>
+        <check_any>
+          <event_game_started/>
+          <event_game_loaded/>
+        </check_any>        
+      </conditions>
+      <actions>
+        <!--If the master table does not exist, create it-->
+        <do_if value="global.$apslData? == false">
+          <set_value name="global.$apslData" exact="table[]"/>
+          <set_value name="global.$apslData.$stationLogisticsData" exact="table[]"/>
+          <set_value name="global.$apslData.$debugToFile" exact="false"/>
+
+          <!--
+            Necessary for a rare edge case where stations poof out of existence via API instead of normal means,
+            such as someone using CheatMenu to delete stations.
+        -->
+          <create_group groupname="$trackedStationsGroup"/>
+          <!--TODO: At some point I need an MD that checks every one in a while to see if there are any orphan stations being tracked.-->
+          <set_value name="global.$apslData.$stationLogisticsData.$stationsGroup" exact="$trackedStationsGroup"/>
+          <!--This will need to be synced to how I handle max ranges. Currently planned for just manager stars (so 5) -->
+          <set_value name="global.$apslData.$stationLogisticsData.$absoluteMaxStationRange" exact="5"/>
+          <set_value name="global.$apslData.$stationLogisticsData.$resourceCriticalityThreshold" exact="0.10f"/>
+          <set_value name="global.$apslData.$stationLogisticsData.$maxReservationLimit" exact="0.9f"/>
+        </do_if>
+      </actions>
+    </cue>
+  </cues>
+</mdscript>
