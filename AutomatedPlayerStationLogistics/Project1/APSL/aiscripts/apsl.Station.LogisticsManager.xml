@@ -20,10 +20,9 @@
         <do_if value="this.station.money ge (this.station.productionmoney * 1.5)">
           <!--TODO: Move the limits (1.5 and 1.3) from hardcoded amounts to a variable so in the future they can be changed if desired-->
           <set_value name="$transferAmount" exact="(this.station.money - this.station.productionmoney * 1.3)"/>
-          <debug_text text="'Station money greater than threshhold, transferring excess (%1) to player'.[$transferAmount.formatted.{%s %Cr}]"/>
           <transfer_money from="this.station" to="player" amount="$transferAmount"/>
           <!--Notify Player - need to run_interrupt_script I think (see: trade.station.xml and player.interaction.budget)-->
-          <run_interrupt_script name="apsl.Player.Interaction.StationMoneyTransfer" />
+          <run_interrupt_script name="'apsl.Player.Interaction.StationMoneyTransfer'" />
           <remove_value name="$transferAmount"/>
         </do_if>
       </actions>
@@ -55,30 +54,6 @@
         </do_if>
       </actions>
     </handler>
-    <handler comment="Handler to check if a newly built player station is in range.">
-      <conditions>
-        <event_player_built_station />
-      </conditions>
-      <actions>
-        <!--For that off chance they're in the same cluster, short circuit-->
-        <do_if value="event.param.cluster == this.station.cluster">
-          <run_script name="apsl.lib.ProcessNewInRangeStation">
-            <param name="newStation" value="event.param"/>
-            <param name="stationLogisticsTable" value="$thisStationLogisticsData"/>
-          </run_script>
-        </do_if>
-        <do_else>
-          <find_cluster_in_range object="event.param" maxdistance="global.$apslData.$stationLogisticsData.$absoluteMaxStationRange" multiple="true" distances="$newStationDistances" />
-          <!-- Since the distances are a table, check if this.station cluster is a key in the distances table. If it is, bingo, in range.-->
-          <do_if value="$newStationDistances.{this.station.cluster}? == true">
-            <run_script name="apsl.lib.ProcessNewInRangeStation">
-              <param name="newStation" value="event.param"/>
-              <param name="stationLogisticsTable" value="$thisStationLogisticsData"/>
-            </run_script>
-          </do_if>
-        </do_else>
-      </actions>
-    </handler>
     <handler comment="Handler for when a station in range is destroyed">
       <conditions>
         <event_player_owned_destroyed />
@@ -103,90 +78,77 @@
         <set_value name="$keepScriptAlive" exact="false"/>
       </actions>
     </handler>
-    <handler>
-      <conditions>
-        <event_object_subordinate_added object="this.station"/>
-        <check_value value="event.param.assignment == assignment.trade"/>
-      </conditions>
-      <actions>
-        <set_value name="$hasSubordinateTrader" exact="true"/>
-      </actions>
-    </handler>
-    <handler>
-      <conditions>
-        <event_object_subordinate_removed object="this.station"/>
-        <check_value value="event.param.assignment == assignment.trade"/>
-      </conditions>
-      <actions>
-        <do_if value="this.station.subordinates.{assignment.trade}.count lt 1">
-          <!--No more traders. Start the light shutdown and set hasTrader to false-->
-          <run_script name="apsl.lib.StationShutdown">
-            <param name="stationLogisticsData" value="$thisStationLogisticsData"/>
-            <param name="isOperationalButNoShips" value="true"/>
-          </run_script>
-          <set_value name="$hasSubordinateTrader" exact="true"/>
-        </do_if>
-      </actions>
-    </handler>
   </interrupts>
-  <init>
-    <!--
+  <attention min="unknown">
+    <actions>
+      <!--Actual init logic, since scripts can't be called from init, which is fucking stupid. Like this xml scripting language.-->
+      <!--********* INIT Logic *********-->
+      <!--
       Since it's theoretically possible for ships to already start searching for orders, but the evaluating variable may not exist
       yet, ships will need to handle an edge case of if no station data exists, and they should wait in that case. If they wait ~10s
       and nothing comes, then there's probably an error state.
     -->
-    <!--Check if station logistics data exists already, and if not create it for this station-->
-    <run_script name="apsl.lib.GetStationData">
-      <param name="stationId" value="this.station.idcode"/>
-      <save_retval name="stationData" variable="$thisStationLogisticsData"/>
-    </run_script>
-
-    <!--Doesn't already exist, create it.-->
-    <do_if value="$thisStationLogisticsData == null">
-      <run_script name="apsl.lib.CreateNewStationEntry">
+      <!--Check if station logistics data exists already, and if not create it for this station-->
+      <run_script name="'apsl.lib.GetStationData'">
         <param name="stationId" value="this.station.idcode"/>
-        <param name="stationEntity" value="this.station"/>
-        <param name="stationManager" value="this"/>
-        <save_retval name="createdStationData" variable="$thisStationLogisticsData"/>
-        <save_retval name="wasSuccessful" variable="$creationDataSuccessResult"/>
+        <save_retval name="stationData" variable="$thisStationLogisticsData"/>
       </run_script>
 
-      <do_if value="$creationDataSuccessResult == false">
-        <!-- 
+      <!--Doesn't already exist, create it.-->
+      <do_if value="$thisStationLogisticsData == null">
+        <run_script name="'apsl.lib.CreateNewStationEntry'">
+          <param name="stationId" value="this.station.idcode"/>
+          <param name="stationEntity" value="this.station"/>
+          <param name="stationManager" value="this"/>
+          <save_retval name="createdStationData" variable="$thisStationLogisticsData"/>
+          <save_retval name="wasSuccessful" variable="$creationDataSuccessResult"/>
+        </run_script>
+
+        <do_if value="$creationDataSuccessResult == false">
+          <!-- 
             This indicates something's gone really horribly wrong. Something really bad happened with the creation script, 
             since the only fail-state it should have is station data already exists, which is checked up above.
         -->
-        <debug_to_file name="'apsl.log'" text="'APSL ERROR! Station logistics data creation failure (apsl.station.logisicsmanager/init). stationID: %1'.[this.station.idcode]" />
-        <!--TODO: Notify player something broke and to not save their game. Will be terminating all scripts on this entity immediately.-->
-        <!-- Call an interrupt script to handle the notification -->
-        <abort_scripts entity="this"/>
+          <debug_to_file name="'apsl.log'" text="'APSL ERROR! Station logistics data creation failure (apsl.station.logisicsmanager/init). stationID: %1'.[this.station.idcode]" />
+          <!--TODO: Notify player something broke and to not save their game. Will be terminating all scripts on this entity immediately.-->
+          <!-- Call an interrupt script to handle the notification -->
+          <abort_scripts entity="this"/>
+        </do_if>
       </do_if>
-    </do_if>
 
-    <!--For creating a group for production/storage modules since a production facility being destroyed is a trigger for reevaluation-->
-    <find_object_component object="this.station" groupname="$productionAndStorageModules" module="true" class="[class.production, class.storage]"/>
+      <!--For creating a group for production/storage modules since a production facility being destroyed is a trigger for reevaluation-->
+      <find_object_component object="this.station" groupname="$productionAndStorageModules" module="true" class="[class.production, class.storage]"/>
 
-    <!--Check for subordinate traders-->
-    <do_if value="this.station.subordinates.{assignment.trade}.count gt 0">
-      <set_value name="$hasSubordinateTrader" exact="true"/>
-    </do_if>
-    <do_else>
-      <set_value name="$hasSubordinateTrader" exact="false"/>
-    </do_else>
+      <!--Check for subordinate traders-->
+      <do_if value="this.station.subordinates.{assignment.trade}.count gt 0">
+        <set_value name="$hasSubordinateTrader" exact="true"/>
+      </do_if>
+      <do_else>
+        <set_value name="$hasSubordinateTrader" exact="false"/>
+      </do_else>
+      
+      <!--Check for cargo drones-->
+      <do_if value="this.station.availableunits.{unitcategory.transport}.count gt 0">
+        <set_value name="$hasCargoDrones" exact="true"/>
+        <set_value name="$canTrade" exact="true"/>
+      </do_if>
+      <do_else>
+        <set_value name="$hasCargoDrones" exact="false"/>
+        <set_value name="$canTrade" exact="false"/>
+      </do_else>
 
-    <!--Get the last little bits set up for the main loop.-->
-    <set_value name="$isQueuedEvaluate" exact="false"/>
-    <set_value name="$keepScriptAlive" exact="true"/>
-    <set_value name="$thisStationLogisticsData.$isEvaluating" exact="false"/>
-    <set_value name="$thisStationLogisticsData.$isLogisticsActive" exact="true"/>
-    <set_value name="$playerStationsInZone" exact="[]"/>
-  </init>
-  <attention min="unknown">
-    <actions>
+      <!--Get the last little bits set up for the main loop.-->
+      <set_value name="$isQueuedEvaluate" exact="false"/>
+      <set_value name="$keepScriptAlive" exact="true"/>
+      <set_value name="$thisStationLogisticsData.$isEvaluating" exact="false"/>
+      <set_value name="$thisStationLogisticsData.$isLogisticsActive" exact="true"/>
+      <set_value name="$playerStationsInZone" exact="[]"/>
+      
       <set_value name="$checkForNewStations" exact="false" />
       <set_value name="$mainActionSleepTime" exact="15s"/>
       <set_value name="$cycles" exact="0"/>
       <set_value name="$edgeCaseMaxCycles" exact="100"/>
+      <!--********* End INIT Logic *********-->
 
       <!--
         TODO: Need to figure out a good place to call shutdown. Also need a place to check if there's a trade ship subordinated to the station. The first time there's a ship attached (either
@@ -199,20 +161,24 @@
         <!--Insurance check for if the manager has somehow been removed from the station -->
         <do_if value="this.station? == false">
           <set_value name="$thisStationLogisticsData.$isLogisticsActive" exact="false"/>
-          <run_script name="apsl.lib.StationShutdown">
+          <run_script name="'apsl.lib.StationShutdown'">
             <param name="stationLogisticsData" value="$thisStationLogisticsData"/>
           </run_script>
           <break/>
         </do_if>
 
-        <!--Check for subordinates-->
+        <!--Check for subordinate traders-->
         <do_if value="this.station.subordinates.{assignment.trade}.count lt 1">
           <do_if value="$hasSubordinateTrader == true">
             <!--We no longer have traders, but we did last time we checked. Do a light shutdown...-->
             <set_value name="$hasSubordinateTrader" exact="false"/>
-            <run_script name="apsl.lib.StationShutdown">
+            <run_script name="'apsl.lib.StationShutdown'">
               <param name="stationLogisticsData" value="$thisStationLogisticsData"/>
               <param name="isOperationalButNoShips" value="true"/>
+            </run_script>
+            <!--Notify player cargo-only dormancy mode-->
+            <run_script name="'apsl.Player.Interaction.StationLogisticsShipDormancy'">
+              <param name="station" value="this.station"/>
             </run_script>
           </do_if>
         </do_if>
@@ -222,15 +188,39 @@
             <set_value name="$hasSubordinateTrader" exact="true"/>
           </do_if>
         </do_else>
+        
+        <!--Check for cargo drones-->
+        <do_if value="this.station.availableunits.{unitcategory.transport}.count lt 1">
+          <!--If it had drones, but now doesn't, crap. Initiate full dormancy mode.-->
+          <do_if value="$hasCargoDrones == true">
+            <set_value name="$hasCargoDrones" exact="false"/>
+            <set_value name="$canTrade" exact="false"/>
+            <run_script name="'apsl.lib.StationShutdown'">
+              <param name="stationLogisticsData" value="$thisStationLogisticsData"/>
+            </run_script>
+            <!--Notify Player full dormancy mode entered-->
+            <run_script name="'apsl.Player.Interaction.StationLogisticsCargoDroneDormancy'">
+              <param name="station" value="this.station"/>
+            </run_script>
+          </do_if>
+        </do_if>
+        <do_else>
+          <!--If it didn't have cargo drones before, but does now, just need to set the appropriate flags-->
+          <do_if value="$hasCargoDrones == false">
+            <set_value name="$hasCargoDrones" exact="true"/>
+            <!--TODO: Figure out if there are more possible things needed to determine (at this point) if a station can trade-->
+            <set_value name="$canTrade" exact="true"/>
+          </do_if>
+        </do_else>
 
         <!--Periodic check for new stations. Does not need to happen often. Like once per half hour. Extreme edge case.-->
         <do_if value="$checkForNewStations == true">
-          <run_script name="apsl.lib.ProcessAllStationsInRange">
+          <run_script name="'apsl.lib.ProcessAllStationsInRange'">
             <param name="stationLogisticsTable" value="$thisStationLogisticsData"/>
           </run_script>
           
           <!--Check if any new stations are in the zone and not yet tracked...-->
-          <run_script name="apsl.lib.CheckInZonePlayerStations">
+          <run_script name="'apsl.lib.CheckInZonePlayerStations'">
             <param name="baseZone" value="this.station.zone"/>
             <param name="stationsInRange" value="$thisStationLogisticsData.$stationsInRange"/>
             <param name="alreadyFoundInZoneStations" value="$playerStationsInZone"/>
@@ -255,15 +245,16 @@
           <set_value name="$thisStationLogisticsData.$currentEvaluationBuyOffers" exact="$buyOffers"/>
 
           <!--Determine which list to use for EvaluateLogistics...-->
+          <!--TODO: I need to determine if this station has cargo drones. If it doesn't I shouldn't evaluate even station to station goods (and should release them if cargo drones suddenly poof)-->
           <do_if value="$hasSubordinateTrader == true">
-            <run_script name="apsl.lib.EvaluateLogistics">
+            <run_script name="'apsl.lib.EvaluateLogistics'">
               <param name="stationLogisticsData" value="$thisStationLogisticsData"/>
               <param name="stationManagerSkill" value="this.skill.management"/>
               <param name="buyOffers" value="$buyOffers"/>
             </run_script>
           </do_if>
           <do_else>            
-            <run_script name="apsl.lib.EvaluateLogistics">
+            <run_script name="'apsl.lib.EvaluateLogistics'">
               <param name="stationLogisticsData" value="$thisStationLogisticsData"/>
               <param name="stationManagerSkill" value="this.skill.management"/>
               <param name="buyOffers" value="$buyOffers"/>
@@ -276,7 +267,7 @@
         </do_if>
 
         <!--TODO: Scan for station to station trades. May need to include both player to player and NPC stations since this script may take the place of trade.station-->
-        <!--This may only need to run like once every 2-4 minutes or so.-->        
+        <!--This may only need to run like once every 2-4 minutes or so.--> 
 
         <!--Sleep. Might need to play around with the time a bit to find a good balance.-->
         <wait exact="$mainActionSleepTime">

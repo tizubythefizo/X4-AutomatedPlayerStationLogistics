@@ -26,6 +26,9 @@
           <set_value name="global.$apslData.$stationLogisticsData.$absoluteMaxStationRange" exact="5"/>
           <set_value name="global.$apslData.$stationLogisticsData.$resourceCriticalityThreshold" exact="0.10f"/>
           <set_value name="global.$apslData.$stationLogisticsData.$maxReservationLimit" exact="0.9f"/>
+          
+          <!--Notify player the mod is installed.-->
+          <show_help duration="10s" custom="{98776,2}"/>
         </do_if>
       </actions>
     </cue>

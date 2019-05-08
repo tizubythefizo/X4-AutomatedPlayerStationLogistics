@@ -6,11 +6,24 @@
   </params>
   <attention min="unknown">
     <actions>
+      <!--Parameter Validation-->
+      <do_if value="$station? == false or $station.isclass.station == false">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.Player.Interaction.StationMoneyTransfer parameter station either does not exist or was not a station!'"/>
+        <return>
+        </return>
+      </do_if>
+      <do_if value="$transferAmount? == false or typeof $transferAmount != datatype.money">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.Player.Interaction.StationMoneyTransfer parameter transferAmount either does not exist or was not of type money!'"/>
+        <return>
+        </return>
+      </do_if>
+      
+      <!--Main Logic-->
       <substitute_text text="$logText" source="{98776,1}" comment="$STATION$ has transferred $AMOUNT$ to your account.">
         <replace string="'$STATION$'" with="$station.name"/>
-        <replace string="'$AMOUNT$'" with="$transferAmount.formatted.{%s %Cr}"/>
+        <replace string="'$AMOUNT$'" with="$transferAmount.formatted.{'%s %Cr'}"/>
       </substitute_text>
-      <write_to_logbook category="general" object="$station" title="$logText" money="$transferAmount" interaction="showonmap"/>
+      <write_to_logbook category="upkeep" object="$station" title="$logText" money="$transferAmount" interaction="showonmap"/>
       <show_notification text="$logText"/>
     </actions>
   </attention>

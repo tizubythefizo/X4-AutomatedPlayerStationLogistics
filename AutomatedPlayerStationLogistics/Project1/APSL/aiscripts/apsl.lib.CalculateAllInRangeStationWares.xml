@@ -45,7 +45,7 @@
 
       <!--Run on interested wares-->
       <do_all exact="$inRangeStations.count" counter="$counter">
-        <run_script name="apsl.lib.CalculateInterestedWares">
+        <run_script name="'apsl.lib.CalculateInterestedWares'">
           <param name="seekingStation" value="$station"/>
           <param name="stationOfInterest" value="$inRangeStations.{$counter}.$station"/>
           <param name="resourceData" value="$resourceData"/>

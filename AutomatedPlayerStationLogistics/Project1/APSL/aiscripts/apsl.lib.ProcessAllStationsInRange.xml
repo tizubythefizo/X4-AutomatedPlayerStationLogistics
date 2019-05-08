@@ -26,7 +26,7 @@
 
       <do_if value="$foundStations? == true and $foundStations.count ge 1">
         <do_all exact="$foundStations.count" counter="$stationCounter">
-          <run_script name="apsl.lib.ProcessNewInRangeStation">
+          <run_script name="'apsl.lib.ProcessNewInRangeStation'">
             <param name="newStation" value="$foundStations.{$stationCounter}"/>
             <param name="stationLogisticsTable" value="$stationLogisticsTable"/>
           </run_script>

@@ -57,7 +57,7 @@
 
                   <do_if value="$stationCounter le 0">
                     <!--This should be impossible if the logic is working right.-->
-                    <debug_to_file name="apsl.log" text="ERROR! apsl.lib.EvaluateResourceCriticality counter for interested stations hit 0 before reserved amount of wares was reached! Should not be possible."/>
+                    <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.EvaluateResourceCriticality counter for interested stations hit 0 before reserved amount of wares was reached! Should not be possible.'"/>
                     <break/>
                   </do_if>
                   

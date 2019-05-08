@@ -1,4 +1,10 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
+<language>
 <page id="98776" title="APSL Mod Messages" descr="0" voice="no">
   <t id="1">$STATION$ has transferred $AMOUNT$ to your account.</t>
+  <t id="2">APSL has been installed.</t>
+  <t id="3">$STATION$ logistics manager is now online. If there are cargo drones and/or ships assigned to station, evaluations will begin</t>
+  <t id="4">$STATION$ has no trade ships, evaluations stopping. Will evaluate in-zone stations if station has cargo drones.</t>
+  <t id="5">$STATION$ no longer has cargo drones. Cargo drone logistics are now impossible.</t>
 </page>
+</language>

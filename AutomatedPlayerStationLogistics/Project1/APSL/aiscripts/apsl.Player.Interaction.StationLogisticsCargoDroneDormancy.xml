@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<aiscript name="apsl.Player.Interaction.StationLogisticsCargoDroneDormancy" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="aiscripts.xsd" priority="10">
+  <params>
+    <param name="station" comment="REQUIRED! The station that is now online."/>
+  </params>
+  <attention min="unknown">
+    <actions>
+      <!--Parameter Validation-->
+      <do_if value="$station? == false or $station.isclass.station == false">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.Player.Interaction.StationLogisticsCargoDroneDormancy parameter station either does not exist or was not a station!'"/>
+        <return>
+        </return>
+      </do_if>
+
+      <!--Main Logic-->
+      <substitute_text text="$logText" source="{98776,4}" comment="$STATION$ no longer has cargo drones. Cargo drone logistics are now impossible.">
+        <replace string="'$STATION$'" with="$station.name"/>
+      </substitute_text>
+      <write_to_logbook category="upkeep" object="$station" title="$logText" interaction="showonmap"/>
+      <show_notification text="$logText"/>
+    </actions>
+  </attention>
+</aiscript>

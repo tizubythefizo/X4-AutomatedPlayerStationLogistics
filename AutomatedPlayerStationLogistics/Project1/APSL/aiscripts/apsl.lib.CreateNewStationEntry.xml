@@ -59,7 +59,7 @@
         <find_sector space="$foundClusters.keys.sorted" multiple="true" name="$foundSectors" />
         <set_value name="global.$apslData.$stationLogistics.{$stationId}.$sectorsInRange" exact="$foundSectors"/>
         
-        <run_script name="apsl.lib.ProcessAllStationsInRange">
+        <run_script name="'apsl.lib.ProcessAllStationsInRange'">
           <param name="stationLogisticsTable" value="global.$apslData.$stationLogistics.{$stationId}"/>
         </run_script>
         

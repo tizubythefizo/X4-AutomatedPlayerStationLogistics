@@ -40,7 +40,7 @@
         <get_jump_path start="$startingStation.sector" end="$endingStation.sector" multiple="true" component="$jumpPath"/>
         
         <!--Call lib to get back a nice list of tables representing structures and such-->
-        <run_script name="apsl.lib.CompileJumpPathData">
+        <run_script name="'apsl.lib.CompileJumpPathData'">
           <param name="pathList" value="$jumpPath"/>
           <save_retval name="result" variable="$compiledJumpPath"/>
         </run_script>

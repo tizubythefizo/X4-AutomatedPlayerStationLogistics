@@ -47,7 +47,7 @@
       </do_if>
 
       <!--First, prune resource data. -->
-      <run_script name="apsl.lib.PruneResourceData">
+      <run_script name="'apsl.lib.PruneResourceData'">
         <param name="resourceData" value="$resourceData"/>
         <param name="buyOffers" value="$buyOffers"/>
         <param name="interestedStationsData" value="$inRangeStations"/>

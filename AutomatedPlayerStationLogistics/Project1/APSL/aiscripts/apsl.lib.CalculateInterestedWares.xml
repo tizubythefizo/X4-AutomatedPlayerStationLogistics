@@ -57,7 +57,7 @@
         <set_value name="$resultTable" exact="table[]"/>  
       </do_if>
       <do_else>
-        <set_value name="$resultTable" exact="$existingWareTable[]"/>
+        <set_value name="$resultTable" exact="$existingWareTable"/>
       </do_else>
       
       <!--First get all the resources that are cared about that the station would be interested in-->
@@ -75,15 +75,15 @@
           <do_all exact="$itemsToRemove.keys.count" counter="$counter">
             <!--Should probably check if there's a reservation amount and cancel the reservation...-->
 
-            <do_if value="$resultTable.{$itemsToRemove.keys{$counter}} ge 1">
+            <do_if value="$resultTable.{$itemsToRemove.keys.{$counter}} ge 1">
               <!--If there's any wares on reserve, cancel them before removing the ware.-->
               <do_if value="$resourceData.{$itemsToRemove.keys.{$counter}}.$totalReservations gt 0">
                 <set_value name="$resourceData.{$itemsToRemove.keys.{$counter}}.$totalReservations" exact="$resultTable.{$itemsToRemove.keys.{$counter}}" operation="subtract"/>
               </do_if>
-              <remove_ware_reservation object="$stationOfInterest" reserver="$seekingStation" ware="$itemsToRemove.keys{$counter}"/>
+              <remove_ware_reservation object="$stationOfInterest" reserver="$seekingStation" ware="$itemsToRemove.keys.{$counter}"/>
             </do_if>
             
-            <remove_value name="$resultTable.{$itemsToRemove.keys{$counter}}"/>             
+            <remove_value name="$resultTable.{$itemsToRemove.keys.{$counter}}"/>             
           </do_all>
           
         </do_if>
@@ -133,10 +133,10 @@
               <set_value name="$resourceData.{$itemsToRemove.keys.{$pruneCounter}}.$totalReservations" exact="$resultTable.{$itemsToRemove.keys.{$pruneCounter}}" operation="subtract"/>
             </do_if>
             
-            <remove_ware_reservation object="$stationOfInterest" reserver="$seekingStation" ware="$itemsToRemove.keys{$pruneCounter}"/>
+            <remove_ware_reservation object="$stationOfInterest" reserver="$seekingStation" ware="$itemsToRemove.keys.{$pruneCounter}"/>
           </do_if>
 
-          <remove_value name="$resultTable.{$itemsToRemove.keys{$pruneCounter}}"/>
+          <remove_value name="$resultTable.{$itemsToRemove.keys.{$pruneCounter}}"/>
         </do_if>        
       </do_all>
       

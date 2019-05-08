@@ -54,7 +54,7 @@
             <!-- Need to do the + 1 check. If it's a sector, that means it's a highway connection and not a jump. Need to handle it.-->
             <do_if value="$pathList.{$pathListCounter + 1}.isclass.sector">
               
-              <run_script name="apsl.lib.GetHighwayPoints">
+              <run_script name="'apsl.lib.GetHighwayPoints'">
                 <param name="startingSector" value="$pathList.{$pathListCounter}" />
                 <param name="endingSector" value="$pathList.{$pathListCounter + 1}" />
                 <save_retval name="entrance" variable="$gateEntry"/>
@@ -90,7 +90,7 @@
             </do_if>
             <do_elseif value="$pathList.{$pathListCounter + 1}.isclass.sector">
               <!--If the next is a sector, need to get the highway entries, and set the entry gate to this iterations table, and prep for the next iteration.-->
-              <run_script name="apsl.lib.GetHighwayPoints">
+              <run_script name="'apsl.lib.GetHighwayPoints'">
                 <param name="startingSector" value="$pathList.{$pathListCounter}" />
                 <param name="endingSector" value="$pathList.{$pathListCounter + 1}" />
                 <save_retval name="entrance" variable="$gateEntry"/>
@@ -135,7 +135,7 @@
                 The gateOutOf here becomes the exit gate, and counter jump will need to be set to land on the next sector. The exit gate (which is gateInto for
                 the next sector) will need to be set into a temp variable so it can be accessed in the next iteration.
               -->
-            <run_script name="apsl.lib.GetHighwayPoints">
+            <run_script name="'apsl.lib.GetHighwayPoints'">
               <param name="startingSector" value="$pathList.{$pathListCounter}" />
               <param name="endingSector" value="$pathList.{$pathListCounter + 1}" />
               <save_retval name="entrance" variable="$gateEntry"/>

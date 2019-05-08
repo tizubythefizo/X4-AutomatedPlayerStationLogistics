@@ -26,7 +26,7 @@
       </do_if>
 
       <!-- Check if the station already exists in tracked table. If it does we'll want to nope right on out of here.-->
-      <run_script name="apsl.lib.CheckIfStationInRangeIsAlreadyTracked">
+      <run_script name="'apsl.lib.CheckIfStationInRangeIsAlreadyTracked'">
         <param name="station" value="$newStation"/>
         <param name="inRangeStationsTable" value="$stationLogisticsTable.$stationsInRange"/>
         <save_retval name="checkResult" variable="$stationAlreadyTracked"/>
@@ -44,7 +44,7 @@
       <!-- Determine if new station has any wares that are cared about. If it either produces cared about wares, or has them for sale we care. -->
 
       <!-- main station has some crap it wants, so now we check to see if the new station produces it or sells it-->
-      <run_script name="apsl.lib.CalculateInterestedWares">
+      <run_script name="'apsl.lib.CalculateInterestedWares'">
         <param name="seekingStation" value="$stationLogisticsTable.$station"/>
         <param name="stationOfInterest" value="$newStation"/>
         <param name="resourceData" value="$stationLogisticsTable.$resourceData"/>
@@ -56,7 +56,7 @@
       <set_value name="$interestingStationTable.$station" exact="$newStation" />
       <set_value name="$interestingStationTable.$interestedWares" exact="$interestedWaresTable" />
 
-      <run_script name="apsl.lib.CalculateStationDistance">
+      <run_script name="'apsl.lib.CalculateStationDistance'">
         <param name="startingStation" value="$stationLogisticsTable.$station"/>
         <param name="endingStation" value="$newStation"/>
         <save_retval name="jumpDistanceResult" variable="$jumpDistance"/>
@@ -67,7 +67,7 @@
       <set_value name="$interestingStationTable.$jumpDistance" exact="$jumpDistance"/>
 
 
-      <run_script name="apsl.lib.AddNewStationToInterestedWaresList">
+      <run_script name="'apsl.lib.AddNewStationToInterestedWaresList'">
         <param name="interestingStationData" value="$interestingStationTable"/>
         <param name="interestingStationsList" value="$stationLogisticsTable.$stationsInRange"/>
       </run_script>
