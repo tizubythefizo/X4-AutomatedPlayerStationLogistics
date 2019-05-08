@@ -5,14 +5,14 @@
   -->
   <params>
     <param name="station" comment="REQUIRED: The station to check as being already tracked."/>
-    <param name="inRangeStationsTable" comment="REQUIRED! The table of the station doing the checking that tracks stations in range."/>
+    <param name="inRangeStations" comment="REQUIRED! The list of already tracked stations."/>
   </params>
   <attention min="unknown">
     <actions>
       <set_value name="$result" exact="false"/>
       
       <!--Paramater validation-->
-      <do_if value="$station.exists == false or $station.isclass.station == false">
+      <do_if value="$station? == false or $station.isclass.station == false">
         <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.CheckIfStationInRangeIsAlreadyTracked parameter station either does not exist or was not a station!'"/>
       </do_if>
       <do_if value="$inRangeStations == null or typeof $inRangeStations != datatype.list">

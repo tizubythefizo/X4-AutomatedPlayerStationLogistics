@@ -18,7 +18,7 @@
           <retval name="wasSuccessful" value="$successResult"/>
         </return>
       </do_if>
-      <do_if value="$interestingStationsList? == false or typeof $interestingStationData != datatype.list">
+      <do_if value="$interestingStationsList? == false or typeof $interestingStationsList != datatype.list">
         <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.AddNewStationToInterestedWaresList parameter interestingStationsList either does not exist, or was not a list!'"/>
         <return>
           <retval name="wasSuccessful" value="$successResult"/>
@@ -35,16 +35,16 @@
         <!-- Need to go through the list and find the first element where rawDistance is less than or equal to the current elements. That element is where to insert.-->
         <!--If we get all the way through the list without having been added, it means it needs to go at the end of the list.-->
 
-        <do_all exact="$interestingStationsList" counter="$counter">
+        <do_all exact="$interestingStationsList.count" counter="$counter">
 
-          <do_if value="$interestingStationData.rawDistance le $interestingStationsList.{$counter}.rawDistance">
+          <do_if value="$interestingStationData.$rawDistance le $interestingStationsList.{$counter}.$rawDistance">
             <!--Good place to insert!-->
             <set_value name="$interestingStationsList.{$counter}" exact="$interestingStationData" operation="insert"/>
             <set_value name="$successResult" exact="true"/>
             <break/>
           </do_if>
           <!--If this was the last element and there was no where to add, append to the list and break.-->
-          <do_elseif value="$counter == $interestingStationData.count">
+          <do_elseif value="$counter == $interestingStationsList.count">
             <append_to_list name="$interestingStationsList" exact="$interestingStationData"/>
             <set_value name="$successResult" exact="true"/>
             <break/>

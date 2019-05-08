@@ -8,8 +8,10 @@
   </params>
   <attention min="unknown">
     <actions>
+      <set_value name="$successResult" exact="false"/>
+      
       <!--Parameter Validation-->
-      <do_if value="$stationLogisticsData? == false or typeof $stationLogisticsTable != datatype.table">
+      <do_if value="$stationLogisticsData? == false or typeof $stationLogisticsData != datatype.table">
         <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.ReserveStationWares parameter stationLogisticsData either does not exist or was not a table!'"/>
         <return>
           <retval name="wasSuccessful" value="$successResult"/>
@@ -59,6 +61,11 @@
         </do_if>
       </do_all>
 
+      <set_value name="$successResult" exact="true"/>      
+
+      <return>
+        <retval name="wasSuccessful" value="$successResult"/>
+      </return>
     </actions>
   </attention>
 </aiscript>

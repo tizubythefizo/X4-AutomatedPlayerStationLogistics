@@ -11,16 +11,16 @@
       <set_value name="$highwayExit" exact="null"/>
       
       <!--Parameter Validation-->
-      <do_if value="$startingSector.exists != true or $startingSector.isclass.sector != true">
-        <debug_to_file name="'apsl.log'" text="'ERROR! alsp.lib.GetHighwayPoints parameter startingSector either does not exist or was not a sector!'"/>
+      <do_if value="$startingSector? != true or $startingSector.isclass.sector != true">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.GetHighwayPoints parameter startingSector either does not exist or was not a sector!'"/>
         <return>
           <retval name="wasSuccessful" value="$wasSuccessful"/>
           <retval name="entrance" value="$highwayEntrance"/>
           <retval name="exit" value="$highwayExit"/>
         </return>
       </do_if>
-      <do_if value="$endingSector.exists != true or $endingSector.isclass.sector != true">
-        <debug_to_file name="'apsl.log'" text="'ERROR! alsp.lib.GetHighwayPoints parameter endingSector either does not exist or was not a sector!'"/>
+      <do_if value="$endingSector? != true or $endingSector.isclass.sector != true">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.GetHighwayPoints parameter endingSector either does not exist or was not a sector!'"/>
         <return>
           <retval name="wasSuccessful" value="$wasSuccessful"/>
           <retval name="entrance" value="$highwayEntrance"/>
@@ -28,9 +28,9 @@
         </return>
       </do_if>
 
-      <find_object space="$pathList.{$pathListCounter}" class="class.highwayentrygate" multiple="true" name="$highwayList" />
+      <find_object space="$startingSector" class="class.highwayentrygate" multiple="true" name="$highwayList" />
       <do_all exact="$highwayList.count" counter="$highwayCounter">
-        <do_if value="$highwayList.{$highwayCounter}.exit.sector == $pathList.{$pathListCounter + 1}">
+        <do_if value="$highwayList.{$highwayCounter}.exit.sector == $endingSector">
           <!--Found it!-->
           <set_value name="$highwayEntrance" exact="$highwayList.{$highwayCounter}"/>
           <set_value name="$highwayExit" exact="$highwayList.{$highwayCounter}.exit"/>          

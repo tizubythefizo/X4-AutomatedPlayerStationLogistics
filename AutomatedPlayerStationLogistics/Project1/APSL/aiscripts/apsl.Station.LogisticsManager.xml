@@ -60,17 +60,16 @@
     <handler comment="Handler for when a station in range is destroyed">
       <conditions>
         <event_player_owned_destroyed />
+        <check_value value="event.param.isclass.station"/>
       </conditions>
       <actions>
-        <do_if value="event.param.isclass.station">
-          <do_all exact="$thisStationLogisticsData.$stationsInRange.$stationsWithInterestedWares.count" counter="$interestCounter">
-            <do_if value="$thisStationLogisticsData.$stationsInRange.$stationsWithInterestedWares.{$interestCounter}.station == event.param">
-              <!--Found it, remove and break-->
-              <remove_value name="$thisStationLogisticsData.$stationsInRange.$stationsWithInterestedWares.{$interestCounter}"/>
-              <break/>
-            </do_if>
-          </do_all>
-        </do_if>
+        <do_all exact="$thisStationLogisticsData.$stationsInRange.count" counter="$interestCounter">
+          <do_if value="$thisStationLogisticsData.$stationsInRange.{$interestCounter}.station == event.param">
+            <!--Found it, remove and break-->
+            <remove_value name="$thisStationLogisticsData.$stationsInRange.{$interestCounter}"/>
+            <break/>
+          </do_if>
+        </do_all>
       </actions>
     </handler>
     <handler comment="Handler for when the station manager (this) gets removed by the player">
@@ -85,6 +84,8 @@
   <init>
     <!--For creating a group for production/storage modules since a production facility being destroyed is a trigger for reevaluation-->
     <find_object_component object="this.station" groupname="$productionAndStorageModules" module="true" class="[class.production, class.storage]"/>
+
+    <set_value name="$thisStationLogisticsData" exact="null"/>
   </init>
   <attention min="unknown">
     <actions>
@@ -123,7 +124,7 @@
         </do_if>
       </do_if>
 
-      
+
 
       <!--Check for subordinate traders-->
       <do_if value="this.station.subordinates.{assignment.trade}.count gt 0">
@@ -132,7 +133,7 @@
       <do_else>
         <set_value name="$hasSubordinateTrader" exact="false"/>
       </do_else>
-      
+
       <!--Check for cargo drones-->
       <do_if value="this.station.availableunits.{unitcategory.transport}.count gt 0">
         <set_value name="$hasCargoDrones" exact="true"/>
@@ -149,7 +150,7 @@
       <set_value name="$thisStationLogisticsData.$isEvaluating" exact="false"/>
       <set_value name="$thisStationLogisticsData.$isLogisticsActive" exact="true"/>
       <set_value name="$playerStationsInZone" exact="[]"/>
-      
+
       <set_value name="$checkForNewStations" exact="false" />
       <set_value name="$mainActionSleepTime" exact="15s"/>
       <set_value name="$cycles" exact="0"/>
@@ -198,7 +199,7 @@
             <set_value name="$hasSubordinateTrader" exact="true"/>
           </do_if>
         </do_else>
-        
+
         <!--Check for cargo drones-->
         <do_if value="this.station.availableunits.{unitcategory.transport}.count lt 1">
           <!--If it had drones, but now doesn't, crap. Initiate full dormancy mode.-->
@@ -228,16 +229,16 @@
           <run_script name="'apsl.lib.ProcessAllStationsInRange'">
             <param name="stationLogisticsTable" value="$thisStationLogisticsData"/>
           </run_script>
-          
+
           <!--Check if any new stations are in the zone and not yet tracked...-->
           <run_script name="'apsl.lib.CheckInZonePlayerStations'">
             <param name="baseZone" value="this.station.zone"/>
             <param name="stationsInRange" value="$thisStationLogisticsData.$stationsInRange"/>
             <param name="alreadyFoundInZoneStations" value="$playerStationsInZone"/>
           </run_script>
-          
+
           <set_value name="$checkForNewStations" exact="false" />
-        </do_if>        
+        </do_if>
 
         <!--Normal operations-->
 
@@ -251,7 +252,7 @@
               Get the current buy offers to be used by this evaluation round. This snapshot is desireable
               even if it becomes outdated during the course of evaluation to keep the evaluation consistent.
           -->
-          <find_buy_offer buyer="$seekingStation" excludeempty="false" multiple="true" result="$buyOffers"/>
+          <find_buy_offer buyer="this.station" excludeempty="false" multiple="true" result="$buyOffers"/>
           <set_value name="$thisStationLogisticsData.$currentEvaluationBuyOffers" exact="$buyOffers"/>
 
           <!--Determine which list to use for EvaluateLogistics...-->
@@ -263,7 +264,7 @@
               <param name="buyOffers" value="$buyOffers"/>
             </run_script>
           </do_if>
-          <do_else>            
+          <do_else>
             <run_script name="'apsl.lib.EvaluateLogistics'">
               <param name="stationLogisticsData" value="$thisStationLogisticsData"/>
               <param name="stationManagerSkill" value="this.skill.management"/>
@@ -277,7 +278,7 @@
         </do_if>
 
         <!--TODO: Scan for station to station trades. May need to include both player to player and NPC stations since this script may take the place of trade.station-->
-        <!--This may only need to run like once every 2-4 minutes or so.--> 
+        <!--This may only need to run like once every 2-4 minutes or so.-->
 
         <!--Sleep. Might need to play around with the time a bit to find a good balance.-->
         <wait exact="$mainActionSleepTime">
@@ -291,6 +292,7 @@
           <set_value name="$cycles" exact="0"/>
         </do_if>
       </do_while>
+      
     </actions>
   </attention>
 </aiscript>

@@ -14,7 +14,7 @@
       <set_value name="$successResult" exact="false"/>
       
       <!--Parameter Validation-->
-      <do_if value="$stationId? == false or typeof $stationId != datatype.string">
+      <do_if value="$stationId? == false or (typeof $stationId).isstring != true">
         <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.CalculateAllInRangeStationWares parameter stationId either does not exist or was not a string!'"/>
         <return>
           <retval name="wasSuccessful" value="$successResult"/>
@@ -29,47 +29,58 @@
       <!--Leaving off stationManager for now since I have no clue what its datatype is...TODO: Validate this bitch-->
 
       <do_if value="global.$apslData.$stationLogisticsData.{$stationId}? == false">
-        <set_value name="global.$apslData.$stationLogisticsData.{$stationId}" exact="table[]"/>
-        <set_value name="global.$apslData.$stationLogisticsData.{$stationId}.$station" exact="$stationEntity"/>
-        <add_to_group groupname="global.$apslData.$stationLogisticsData.$stationsGroup" object="$stationEntity"/>
+        <set_value name="global.$apslData.$stationLogisticsData.{'$' + $stationId}" exact="table[]"/>
+        <set_value name="global.$apslData.$stationLogisticsData.{'$' + $stationId}.$station" exact="$stationEntity"/>
+        <add_to_group groupname="global.$apslData.$stationsGroup" object="$stationEntity"/>
         <!--
           Variable to track if the station is currently evaluating. Since there are lib action calls and those are blocking
           it's possible for a ship to want orders while a station is in the middle of evaluating. This will need to be set to
           false once done being evaluated for the first time.
         -->
-        <set_value name="global.$apslData.$stationLogisticsData.{$stationId}.$isEvaluating" exact="true"/>
+        <set_value name="global.$apslData.$stationLogisticsData.{'$' + $stationId}.$isEvaluating" exact="true"/>
         <!--
             The logistics manager ai should set this to true once it's ready to go. It should be set to false when
             it's done (e.g. manager is unassigned).
         -->
-        <set_value name="global.$apslData.$stationLogisticsData.{$stationId}.$isLogisticsActive" exact="false"/>
+        <set_value name="global.$apslData.$stationLogisticsData.{'$' + $stationId}.$isLogisticsActive" exact="false"/>
 
         <do_if value="$stationManager != null">
-          <set_value name="global.$apslData.$stationLogisticsData.{$stationId}.$manager" exact="$stationManager"/>
-          <set_value name="global.$apslData.$stationLogisticsData.{$stationId}.$isLogisticsActive" exact="true"/>
+          <set_value name="global.$apslData.$stationLogisticsData.{'$' + $stationId}.$manager" exact="$stationManager"/>
+          <set_value name="global.$apslData.$stationLogisticsData.{'$' + $stationId}.$isLogisticsActive" exact="true"/>
         </do_if>
         
         <!--Set up the rest of the result data using empty tables/lists and whatnot-->
-        <set_value name="global.$apslData.$stationLogisticsData.{$stationId}.$stationsInRange" exact="[]"/>
+        <set_value name="global.$apslData.$stationLogisticsData.{'$' + $stationId}.$stationsInRange" exact="[]"/>
 
-        <set_value name="global.$apslData.$stationLogisticsData.{$stationId}.$resourcePriorities" exact="[]"/>
+        <set_value name="global.$apslData.$stationLogisticsData.{'$' + $stationId}.$resourcePriorities" exact="[]"/>
+        <set_value name="global.$apslData.$stationLogisticsData.{'$' + $stationId}.$resourceData" exact="table[]"/>
         
         <!-- Get clusters in range, and then the actual sectors in range as well-->
-        <find_cluster_in_range distances="$foundClusters" maxdistance="global.$apslData.$stationLogisticsData.$absoluteMaxStationRange" object="$stationEntity"/>
-        <set_value name="global.$apslData.$stationLogisticsData.{$stationId}.$clustersInRange" exact="$foundClusters"/>
-        <find_sector space="$foundClusters.keys.sorted" multiple="true" name="$foundSectors" />
-        <set_value name="global.$apslData.$stationLogisticsData.{$stationId}.$sectorsInRange" exact="$foundSectors"/>
+        <find_cluster_in_range distances="$foundClusters" maxdistance="global.$apslData.$absoluteMaxStationRange" object="$stationEntity" multiple="true"/>
+        <set_value name="global.$apslData.$stationLogisticsData.{'$' + $stationId}.$clustersInRange" exact="$foundClusters"/>
+        
+        <!--Looks like I'll need to loop through these, since it doesn't like a list or table for space-->
+        <set_value name="global.$apslData.$stationLogisticsData.{'$' + $stationId}.$sectorsInRange" exact="[]"/>
+        <do_all exact="$foundClusters.keys.sorted.count" counter="$clusterCounter">
+          <find_sector space="$foundClusters.keys.{$clusterCounter}" multiple="true" name="$foundSectors" />
+
+          <do_if value="$foundSectors.count gt 0">
+            <do_all exact="$foundSectors.count" counter="$sectorCounter">
+              <append_to_list name="global.$apslData.$stationLogisticsData.{'$' + $stationId}.$sectorsInRange" exact="$foundSectors.{$sectorCounter}"/>
+            </do_all>
+          </do_if>
+        </do_all>
         
         <run_script name="'apsl.lib.ProcessAllStationsInRange'">
-          <param name="stationLogisticsTable" value="global.$apslData.$stationLogisticsData.{$stationId}"/>
+          <param name="stationLogisticsTable" value="global.$apslData.$stationLogisticsData.{'$' + $stationId}"/>
         </run_script>
         
         <set_value name="$successResult" exact="true"/>
       </do_if>
 
       <!--It makes sense to return the newly created data entity, so assign here and return it.-->
-      <set_value name="$stationDataResult" exact ="global.$apslData.$stationLogisticsData.{$stationId}" />
-      <set_value name="global.$apslData.$stationLogisticsData.{$stationId}.$isEvaluating" exact="false"/>
+      <set_value name="$stationDataResult" exact ="global.$apslData.$stationLogisticsData.{'$' + $stationId}" />
+      <set_value name="global.$apslData.$stationLogisticsData.{'$' + $stationId}.$isEvaluating" exact="false"/>
 
       <return>
         <retval name="createdStationData" value="$stationDataResult"/>

@@ -10,18 +10,16 @@
       <set_value name="$successResult" exact="false"/>
       
       <!--Parameter Validation-->
-      <do_if value="$stationLogisticsData? == false or typeof $stationLogisticsTable != datatype.table">
+      <do_if value="$stationLogisticsData? == false or typeof $stationLogisticsData != datatype.table">
         <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.EvaluateResourceCriticality parameter stationLogisticsData either does not exist or was not a table!'"/>
         <return>
           <retval name="wasSuccessful" value="$successResult"/>
-          <retval name="priorityResult" value="$result"/>
         </return>
       </do_if>
       <do_if value="$buyOffers != null and typeof $buyOffers != datatype.list">
         <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.EvaluateResourceCriticality parameter buyOffers was passed in but was not a list!'"/>
         <return>
-          <retval name="wasSuccessful" value="$operationSuccessful"/>
-          <retval name="result" value="null"/>
+          <retval name="wasSuccessful" value="$successResult"/>
         </return>
       </do_if>
       

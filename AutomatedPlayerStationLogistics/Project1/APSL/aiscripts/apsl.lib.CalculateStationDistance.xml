@@ -12,7 +12,7 @@
       <set_value name="$rawDistanceResult" exact="-1"/>
       
       <!--Parameter Validation-->
-      <do_if value="$startingStation.exists == false or $startingStation.isclass.station == false">
+      <do_if value="$startingStation? == false or $startingStation.isclass.station == false">
         <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.CalculateStationDistance parameter startingStation either does not exist or was not a station!'"/>
         <return>
           <retval name="successResult" value="$successResult"/>
@@ -20,8 +20,8 @@
           <retval name="rawDistanceResult" value="$rawDistanceResult"/>
         </return>
       </do_if>
-      <do_if value="$endingStation.exists == false or $endingStation.isclass.station == false">
-        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.CalculateStationDistance parameter startingStation either does not exist or was not a station!'"/>
+      <do_if value="$endingStation? == false or $endingStation.isclass.station == false">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.CalculateStationDistance parameter startingStation either does not exist or was not a station!'" />
         <return>
           <retval name="successResult" value="$successResult"/>
           <retval name="jumpDistanceResult" value="$jumpDistanceResult"/>
@@ -55,29 +55,33 @@
           
           <do_if value="$pathCounter == 1">
             <!--First element, no gateInto. Use starting station instead.-->
-            <set_value name="$rawDistanceResult" exact="$startingStation.distanceto.{$compiledJumpPath.{$pathCounter}.gateOutOf}" operation="add"/>
+            <set_value name="$rawDistanceResult" exact="$startingStation.distanceto.{$compiledJumpPath.{$pathCounter}.$gateOutOf}" operation="add"/>
 
-            <do_if value="$compiledJumpPath.{$pathCounter}.gateOutOf.isclass.highwayentrygate == false">
+            <do_if value="$compiledJumpPath.{$pathCounter}.$gateOutOf.isclass.highwayentrygate == false">
               <set_value name="$jumpDistanceResult" exact="1" operation="add"/>
             </do_if>
             
           </do_if>
           <do_elseif value="$pathCounter == $compiledJumpPath.count">
             <!--Last element, no gateOutOf. Use ending station and gateInto instead.-->
-            <set_value name="$rawDistanceResult" exact="$endingStation.distanceto.{$compiledJumpPath.{$pathCounter}.gateInto}" operation="add"/>
+            <set_value name="$rawDistanceResult" exact="$compiledJumpPath.{$pathCounter}.$gateInto.distanceto.{$endingStation}" operation="add"/>
             <!--That's a wrap. No more jumps to try to count.-->
           </do_elseif>
           <do_else>
             <!--Not the beginning or the end, so it'll always be gate to gate for distance.-->
-            <set_value name="$rawDistanceResult" exact="$compiledJumpPath.{$pathCounter}.gateInto.distanceto.{$compiledJumpPath.{$pathCounter}.gateOutOf}" operation="add"/>
+            <set_value name="$rawDistanceResult" exact="$compiledJumpPath.{$pathCounter}.$gateInto.distanceto.{$compiledJumpPath.{$pathCounter}.$gateOutOf}" operation="add"/>
 
             <!--Again, if the next jump is through a highway, it doesn't count.-->
-            <do_if value="$compiledJumpPath.{$pathCounter}.gateOutOf.isclass.highwayentrygate == false">
+            <do_if value="$compiledJumpPath.{$pathCounter}.$gateOutOf.isclass.highwayentrygate == false">
               <set_value name="$jumpDistanceResult" exact="1" operation="add"/>
             </do_if>
           </do_else>
         </do_all>        
       </do_else>
+
+      <do_if value="global.$apslData.$debug == true">
+        <debug_to_file name="'apsl.log'" text="'INFO! apsl.lib.CalculateStationDistance Distances calculated for %1 to %2 - raw distance %3 jump distance %4'.[$startingStation.name,$endingStation.name,$rawDistanceResult,$jumpDistanceResult]"/>
+      </do_if>
 
       <set_value name="$successResult" exact="true"/>
 

@@ -10,8 +10,8 @@
       <set_value name="$stationAlreadyExisted" exact="false"/>
 
       <!--Paramater validation-->
-      <do_if value="$newStation.exists == false or $station.isclass.station == false">
-        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.CheckIfStationInRangeIsAlreadyTracked parameter station either does not exist or was not a station!'"/>
+      <do_if value="$newStation.exists == false or $newStation.isclass.station == false">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.CheckIfStationInRangeIsAlreadyTracked parameter newStation either does not exist or was not a station!'"/>
         <return>
           <retval name="wasSuccessful" value="$result"/>
           <retval name="didStationAlreadyExist" value="$stationAlreadyExisted"/>
@@ -28,7 +28,7 @@
       <!-- Check if the station already exists in tracked table. If it does we'll want to nope right on out of here.-->
       <run_script name="'apsl.lib.CheckIfStationInRangeIsAlreadyTracked'">
         <param name="station" value="$newStation"/>
-        <param name="inRangeStationsTable" value="$stationLogisticsTable.$stationsInRange"/>
+        <param name="inRangeStations" value="$stationLogisticsTable.$stationsInRange"/>
         <save_retval name="checkResult" variable="$stationAlreadyTracked"/>
       </run_script>
 

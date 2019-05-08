@@ -21,15 +21,23 @@
         -->
           <create_group groupname="$trackedStationsGroup"/>
           <!--TODO: At some point I need an MD that checks every one in a while to see if there are any orphan stations being tracked.-->
-          <set_value name="global.$apslData.$stationLogisticsData.$stationsGroup" exact="$trackedStationsGroup"/>
+          <set_value name="global.$apslData.$stationsGroup" exact="$trackedStationsGroup"/>
           <!--This will need to be synced to how I handle max ranges. Currently planned for just manager stars (so 5) -->
-          <set_value name="global.$apslData.$stationLogisticsData.$absoluteMaxStationRange" exact="5"/>
-          <set_value name="global.$apslData.$stationLogisticsData.$resourceCriticalityThreshold" exact="0.10f"/>
-          <set_value name="global.$apslData.$stationLogisticsData.$maxReservationLimit" exact="0.9f"/>
+          <set_value name="global.$apslData.$absoluteMaxStationRange" exact="5"/>
+          <set_value name="global.$apslData.$resourceCriticalityThreshold" exact="0.10f"/>
+          <set_value name="global.$apslData.$maxReservationLimit" exact="0.9f"/>
+          <!--Set this to true to get more verbose debugging printed to apsl.log-->
+          <set_value name="global.$apslData.$debug" exact="true"/>
           
           <!--Notify player the mod is installed.-->
+          <debug_to_file name="'apsl.log'" text="'INFO - APSL has been installed!'" append="false"/>
           <show_help duration="10s" custom="{98776,2}"/>
         </do_if>
+        <do_else>
+          <debug_to_file name="'apsl.log'" text="'INFO - APSL already installed - creating new logfile for this run.'" append="false"/>
+          <!--Uncomment when loading a save game with apsl already installed. Set to true if debugging is desired. Don't forget to set it back to false when done-->
+          <!--<set_value name="global.$apslData.$debug" exact="false"/>-->
+        </do_else>
       </actions>
     </cue>
   </cues>
