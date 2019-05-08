@@ -50,7 +50,7 @@
                 <!-- Figure out how many reservations to cancel. Should be current (ratio - 0.5) * reservation amount -->
                 <set_value name="$reservationsToDrop" exact="((($reservedRatio - 0.5f) * $stationLogisticsData.$resourceData.{$buyOffers.{$offerCounter}.ware}.$totalReservations) + 1)i"/>
 
-                <set_value name="$stationCounter" exact="$stationLogisticsData.$inRangeStations.$stationsWithInterestedWares.count"/>
+                <set_value name="$stationCounter" exact="$stationLogisticsData.$stationsInRange.count"/>
                 <do_while value="$reservationsToDrop gt 0">
 
                   <do_if value="$stationCounter le 0">
@@ -60,7 +60,7 @@
                   </do_if>
                   
                   <!--Set this round's station and prep counter for next run.-->
-                  <set_value name="$stationData" exact="$stationLogisticsData.$inRangeStations.{$stationCounter}"/>
+                  <set_value name="$stationData" exact="$stationLogisticsData.$stationsInRange.{$stationCounter}"/>
                   <set_value name="$stationCounter" exact="1" operation="subtract"/>
 
                   <do_if value="$stationData.$interestedWares.{$buyOffers.{$offerCounter}.ware}? == true and $stationData.$interestedWares.{$buyOffers.{$offerCounter}.ware}.stationReservedAmount gt 0">

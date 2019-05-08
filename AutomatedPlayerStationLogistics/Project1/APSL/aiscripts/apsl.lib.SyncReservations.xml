@@ -7,7 +7,7 @@
   <params>
     <param name="resourceData" comment="REQUIRED! The resource data table that holds all the reservations"/>
     <param name="inRangeStations" comment="REQUIRED! The list of interested stations to sync."/>
-    <param name ="station"  comment="The station that needs its reverves synced"/>
+    <param name ="station"  comment="REQUIRED! The station that needs its reverves synced"/>
     <param name="buyOffers" default="null" comment="Optional: Uses the provided buy offer list to determine resources if provided. Will run a new find_buy_offers if not"/>
   </params>
   <attention min="unknown">
@@ -27,8 +27,8 @@
           <retval name="wasSuccessful" value="$successResult"/>
         </return>
       </do_if>
-      <do_if value="$station == null  or typeof $station.isclass.station != true">
-        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.SyncReservations parameter station either does not exist or was not a station!'"/>
+      <do_if value="$station? == false  or typeof $station.isclass.station != true">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.SyncReservations parameter station either does not exist or was not a station! - %1'.[$station]"/>
         <return>
           <retval name="wasSuccessful" value="$successResult"/>
         </return>

@@ -7,6 +7,8 @@
   </params>
   <attention min="unknown">
     <actions>
+      <debug_text text="'Calc Distance Started'"/>
+      
       <set_value name="$successResult" exact="false"/>
       <set_value name="$jumpDistanceResult" exact="-1"/>
       <set_value name="$rawDistanceResult" exact="-1"/>

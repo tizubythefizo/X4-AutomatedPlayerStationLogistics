@@ -52,10 +52,11 @@
       
       <!--Next, refresh current reservation amounts for wares. This shouldn't fall out of sync, since <get_ware_reservation> is a thing.-->
       <!--Yep, need to keep track myself. Get ware reservation only works for stations where the reservation is, apparently.-->
+      <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.EvaluateLogistics sending station %1 to sync reservations'.[$stationLogisticsData.$station.name]"/>
       <run_script name="'apsl.lib.SyncReservations'">
         <param name="resourceData" value="$stationLogisticsData.$resourceData"/>
         <param name="inRangeStations" value="$stationLogisticsData.$stationsInRange"/>
-        <param name="station" value="$stationLogisticsData.station"/>
+        <param name="station" value="$stationLogisticsData.$station"/>
         <param name="buyOffers" value="$buyOffers"/>
       </run_script>
 

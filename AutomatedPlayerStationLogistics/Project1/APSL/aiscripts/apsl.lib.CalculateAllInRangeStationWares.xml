@@ -49,7 +49,7 @@
           <param name="seekingStation" value="$station"/>
           <param name="stationOfInterest" value="$inRangeStations.{$counter}.$station"/>
           <param name="resourceData" value="$resourceData"/>
-          <param name="existingWareTable" value="$inRangeStations.{$counter}.interestedWares"/>
+          <param name="existingWareTable" value="$inRangeStations.{$counter}.$interestedWares"/>
           <param name="buyOffers" value="$buyOffers"/>
         </run_script>
       </do_all>

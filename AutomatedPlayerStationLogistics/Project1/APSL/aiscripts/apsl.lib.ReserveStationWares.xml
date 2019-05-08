@@ -23,12 +23,6 @@
           <retval name="wasSuccessful" value="$successResult"/>
         </return>
       </do_if>
-      <do_if value="$buyOffers != null and typeof $buyOffers != datatype.list">
-        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.EvaluateLogistics parameter buyOffers either does not exist or was not a list!'"/>
-        <return>
-          <retval name="wasSuccessful" value="$successResult"/>
-        </return>
-      </do_if>
       <do_if value="$stationsToCalculate != null and typeof $stationsToCalculate != datatype.list">
         <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.EvaluateLogistics parameter stationsToCalculate was not a list!'"/>
         <return>
@@ -47,7 +41,7 @@
         <set_value name="$stationList" exact="$stationsToCalculate"/>
       </do_if>
       <do_else>
-        <set_value name="$stationList" exact="$stationLogisticsData.$inRangeStations"/>
+        <set_value name="$stationList" exact="$stationLogisticsData.$stationsInRange"/>
       </do_else>
       
       <do_all exact="$stationList.count" counter="$counter">
