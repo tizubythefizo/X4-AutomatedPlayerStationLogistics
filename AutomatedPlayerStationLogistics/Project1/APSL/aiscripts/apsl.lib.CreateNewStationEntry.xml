@@ -29,7 +29,8 @@
       <!--Leaving off stationManager for now since I have no clue what its datatype is...TODO: Validate this bitch-->
 
       <do_if value="global.$apslData.$stationLogisticsData.{$stationId}? == false">
-        <set_value name="global.$apslData.$stationLogisticsData.{$stationId}" exact="table[$station = $stationEntity]"/>
+        <set_value name="global.$apslData.$stationLogisticsData.{$stationId}" exact="table[]"/>
+        <set_value name="global.$apslData.$stationLogisticsData.{$stationId}.$station" exact="$stationEntity"/>
         <add_to_group groupname="global.$apslData.$stationLogisticsData.$stationsGroup" object="$stationEntity"/>
         <!--
           Variable to track if the station is currently evaluating. Since there are lib action calls and those are blocking
