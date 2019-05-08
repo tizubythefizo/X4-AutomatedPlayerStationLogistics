@@ -2,7 +2,7 @@
 <aiscript name="apsl.lib.DetermineResourcePriorities" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="aiscripts.xsd" version="1">
   <params>
     <param name="stationLogisticsData" comment="REQUIRED! The logistics data for the station to determine resource priorities for"/>
-    <param name="buyOffers" comment="OPTIONAL! The buy offers list to use for determining priorities. Will be created if not passed in."/>
+    <param name="buyOffers" default="null" comment="OPTIONAL! The buy offers list to use for determining priorities. Will be created if not passed in."/>
   </params>
   <attention min="unknown">
     <actions>
@@ -27,7 +27,7 @@
       
       
       <!--First, get the "buy" list for the station which will tell me everything the station wants to buy. -->
-      <do_if value="$buyOffers? == false">
+      <do_if value="$buyOffers == null">
         <find_buy_offer buyer="$stationLogisticsData.$station" multiple="true" result="$buyOffers" />  
       </do_if>
       

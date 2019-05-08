@@ -49,7 +49,6 @@
     <Content Include="APSL\aiscripts\apsl.lib.CompileJumpPathData.xml" />
     <Content Include="APSL\aiscripts\apsl.lib.CalculateStationDistance.xml" />
     <Content Include="APSL\aiscripts\apsl.lib.CheckIfStationInRangeIsAlreadyTracked.xml" />
-    <Content Include="APSL\aiscripts\apsl.lib.CreateApslMasterTable.xml" />
     <Content Include="APSL\aiscripts\apsl.lib.CreateNewStationEntry.xml" />
     <Content Include="APSL\aiscripts\apsl.lib.DetermineResourcePriorities.xml" />
     <Content Include="APSL\aiscripts\apsl.lib.EvaluateLogistics.xml">

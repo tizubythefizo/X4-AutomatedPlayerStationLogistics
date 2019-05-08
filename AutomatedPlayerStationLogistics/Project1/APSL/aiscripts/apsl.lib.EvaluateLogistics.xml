@@ -47,6 +47,7 @@
       <!--First determine resource priorities (lib function)-->
       <run_script name="'apsl.lib.DetermineResourcePriorities'">
         <param name="stationLogisticsData" value="$stationLogisticsData"/>
+        <param name="buyOffers" value="$buyOffers"/>
       </run_script>
       
       <!--Next, refresh current reservation amounts for wares. This shouldn't fall out of sync, since <get_ware_reservation> is a thing.-->

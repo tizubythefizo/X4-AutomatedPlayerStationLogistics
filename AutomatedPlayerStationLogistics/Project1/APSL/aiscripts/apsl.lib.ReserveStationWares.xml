@@ -4,7 +4,7 @@
     <param name="stationLogisticsData" comment="The logistics data for the station being evaluated"/>
     <param name="stationManagerSkill" comment="REQUIRED! The skill level of the station manager"/>
     <!--Note: I removed buy offers because in the case of actually reserving wares, we'll want to use the latest buy offers to ensure we don't go over the amount wanted.-->
-    <param name="stationsToCalculate" comment="Optional. If provided will only reserve at these stations."/>
+    <param name="stationsToCalculate" default="null" comment="Optional. If provided will only reserve at these stations."/>
   </params>
   <attention min="unknown">
     <actions>
