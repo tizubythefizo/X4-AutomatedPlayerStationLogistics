@@ -12,25 +12,25 @@
       
       <!--Parameter Validation-->
       <do_if value="$resourceData != null and typeof $resourceData != datatype.table">
-        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.CalculateAllInRangeStationWares parameter resourceData was passed in but was not a table!'"/>
+        <debug_to_file name="'apsl.station_eval.log'" text="'ERROR! apsl.lib.CalculateAllInRangeStationWares parameter resourceData was passed in but was not a table!'"/>
         <return>
           <retval name="wasSuccessful" value="$successResult"/>
         </return>
       </do_if>
       <do_if value="$station.exists == false or $station.isclass.station == false">
-        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.CalculateAllInRangeStationWares parameter station either does not exist or was not a station!'"/>
+        <debug_to_file name="'apsl.station_eval.log'" text="'ERROR! apsl.lib.CalculateAllInRangeStationWares parameter station either does not exist or was not a station!'"/>
         <return>
           <retval name="wasSuccessful" value="$successResult"/>
         </return>
       </do_if>
       <do_if value="$inRangeStations? == false or typeof $inRangeStations != datatype.list">
-        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.CalculateAllInRangeStationWares parameter interestedStations either does not exist or was not a table!'"/>
+        <debug_to_file name="'apsl.station_eval.log'" text="'ERROR! apsl.lib.CalculateAllInRangeStationWares parameter interestedStations either does not exist or was not a table!'"/>
         <return>
           <retval name="wasSuccessful" value="$successResult"/>
         </return>
       </do_if>
       <do_if value="$buyOffers != null and typeof $buyOffers != datatype.list">
-        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.CalculateAllInRangeStationWares parameter buyOffers was passed in but was not a list!'"/>
+        <debug_to_file name="'apsl.station_eval.log'" text="'ERROR! apsl.lib.CalculateAllInRangeStationWares parameter buyOffers was passed in but was not a list!'"/>
         <return>
           <retval name="wasSuccessful" value="$successResult"/>
           <retval name="result" value="null"/>

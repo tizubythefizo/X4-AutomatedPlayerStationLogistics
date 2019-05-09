@@ -17,25 +17,25 @@
 
       <!--Parameter Validation-->
       <do_if value="$resourceData? == false or typeof $resourceData != datatype.table">
-        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.SyncReservations parameter resourceData either does not exist or was not a table!'"/>
+        <debug_to_file name="'apsl.station_eval.log'" text="'ERROR! apsl.lib.SyncReservations parameter resourceData either does not exist or was not a table!'"/>
         <return>
           <retval name="wasSuccessful" value="$successResult"/>
         </return>
       </do_if>
       <do_if value="$inRangeStations? == false or typeof $inRangeStations != datatype.list">
-        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.SyncReservations parameter inRangeStations either does not exist or was not a list!'"/>
+        <debug_to_file name="'apsl.station_eval.log'" text="'ERROR! apsl.lib.SyncReservations parameter inRangeStations either does not exist or was not a list!'"/>
         <return>
           <retval name="wasSuccessful" value="$successResult"/>
         </return>
       </do_if>
       <do_if value="$station? == false  or $station.isclass.station != true">
-        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.SyncReservations parameter station either does not exist or was not a station! - %1'.[$station.name]"/>
+        <debug_to_file name="'apsl.station_eval.log'" text="'ERROR! apsl.lib.SyncReservations parameter station either does not exist or was not a station! - %1'.[$station.name]"/>
         <return>
           <retval name="wasSuccessful" value="$successResult"/>
         </return>
       </do_if>
       <do_if value="$buyOffers != null and typeof $buyOffers != datatype.list">
-        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.SyncReservations parameter buyOffers either does not exist or was not a list!'"/>
+        <debug_to_file name="'apsl.station_eval.log'" text="'ERROR! apsl.lib.SyncReservations parameter buyOffers either does not exist or was not a list!'"/>
         <return>
           <retval name="wasSuccessful" value="$successResult"/>
         </return>
@@ -70,10 +70,10 @@
           </do_if>
         </do_all>
 
-        <debug_to_file name="'apsl.log'" text="'INFO! apsl.Station.SyncReservations Station %1 ware %2 reservation total %3'.[$station.name, $buyOffers.{$buyCounter}.ware.name, $reservationSum]" chance="$debugChance"/>
+        <debug_to_file name="'apsl.station_eval.log'" text="'INFO! apsl.Station.SyncReservations Station %1 ware %2 reservation total %3'.[$station.name, $buyOffers.{$buyCounter}.ware.name, $reservationSum]" chance="$debugChance"/>
 
         <do_if value="$resourceData.{$buyOffers.{$buyCounter}.ware}? == false">
-          <debug_to_file name="'apsl.log'" text="'INFO! apsl.Station.SyncReservations Station %1 ware %2 was not tracked in resource data, tracking'.[$station.name, $buyOffers.{$buyCounter}.ware.name]" chance="$debugChance"/>
+          <debug_to_file name="'apsl.station_eval.log'" text="'INFO! apsl.Station.SyncReservations Station %1 ware %2 was not tracked in resource data, tracking'.[$station.name, $buyOffers.{$buyCounter}.ware.name]" chance="$debugChance"/>
           <set_value name="$resourceData.{$buyOffers.{$buyCounter}.ware}" exact="table[]"/>
           <set_value name="$resourceData.{$buyOffers.{$buyCounter}.ware}.$isCritical" exact="false"/>
           <set_value name="$resourceData.{$buyOffers.{$buyCounter}.ware}.$totalReservations" exact="0"/>

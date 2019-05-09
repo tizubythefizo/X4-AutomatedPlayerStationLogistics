@@ -11,14 +11,14 @@
 
       <!--Paramater validation-->
       <do_if value="$newStation.exists == false or $newStation.isclass.station == false">
-        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.CheckIfStationInRangeIsAlreadyTracked parameter newStation either does not exist or was not a station!'"/>
+        <debug_to_file name="'apsl.station_eval.log'" text="'ERROR! apsl.lib.CheckIfStationInRangeIsAlreadyTracked parameter newStation either does not exist or was not a station!'"/>
         <return>
           <retval name="wasSuccessful" value="$result"/>
           <retval name="didStationAlreadyExist" value="$stationAlreadyExisted"/>
         </return>
       </do_if>
       <do_if value="$stationLogisticsTable == null or typeof $stationLogisticsTable != datatype.table">
-        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.CheckIfStationInRangeIsAlreadyTracked parameter stationLogisticsTable either does not exist or was not a table!'"/>
+        <debug_to_file name="'apsl.station_eval.log'" text="'ERROR! apsl.lib.CheckIfStationInRangeIsAlreadyTracked parameter stationLogisticsTable either does not exist or was not a table!'"/>
         <return>
           <retval name="wasSuccessful" value="$result"/>
           <retval name="didStationAlreadyExist" value="$stationAlreadyExisted"/>
@@ -56,7 +56,6 @@
       <set_value name="$interestingStationTable.$station" exact="$newStation" />
       <set_value name="$interestingStationTable.$interestedWares" exact="$interestedWaresTable" />
 
-      <debug_text text="'APSL Calc Distance about to be called on %1'.[$newStation.name]"/>
       <run_script name="'apsl.lib.CalculateStationDistance'">
         <param name="startingStation" value="$stationLogisticsTable.$station"/>
         <param name="endingStation" value="$newStation"/>

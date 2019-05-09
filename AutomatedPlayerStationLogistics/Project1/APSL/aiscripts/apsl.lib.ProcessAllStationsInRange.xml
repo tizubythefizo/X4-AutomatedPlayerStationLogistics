@@ -14,7 +14,7 @@
 
       <!--Parameter Valdation-->
       <do_if value="$stationLogisticsTable == null or typeof $stationLogisticsTable != datatype.table">
-        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.ProcessAllStationsInRange parameter stationLogisticsTable either does not exist or was not a table!'"/>
+        <debug_to_file name="'apsl.station_eval.log'" text="'ERROR! apsl.lib.ProcessAllStationsInRange parameter stationLogisticsTable either does not exist or was not a table!'"/>
         <return>
           <retval name="wasSuccessful" value="$successResult"/>
         </return>

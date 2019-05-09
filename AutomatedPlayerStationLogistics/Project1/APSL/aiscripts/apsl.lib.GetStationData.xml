@@ -10,7 +10,7 @@
       
       <!--Parameter Validation-->
       <do_if value="$stationId? == false or (typeof $stationId).isstring != true">
-        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.GetStationData parameter stationId either does not exist or was not a string!'"/>
+        <debug_to_file name="'apsl.station_eval.log'" text="'ERROR! apsl.lib.GetStationData parameter stationId either does not exist or was not a string!'"/>
         <return>
           <retval name="wasSuccessful" value="$successResult"/>
         </return>

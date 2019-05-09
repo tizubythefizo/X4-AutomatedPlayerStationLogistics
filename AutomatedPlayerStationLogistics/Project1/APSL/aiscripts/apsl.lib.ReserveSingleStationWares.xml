@@ -13,21 +13,21 @@
       
       <!--Parameter Validation-->
       <do_if value="$reserverStation? == false or typeof $reserverStation.isclass.station == false">
-        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.ReserveSingleStationWares parameter reserverStation either does not exist or was not a station!'"/>
+        <debug_to_file name="'apsl.station_eval.log'" text="'ERROR! apsl.lib.ReserveSingleStationWares parameter reserverStation either does not exist or was not a station!'"/>
         <set_value name="$successResult" exact="false"/>
         <return>
           <retval name="wasSuccessful" value="$successResult"/>
         </return>
       </do_if>
       <do_if value="$reverveeStationData? == false or typeof  $reverveeStationData != datatype.table">
-        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.ReserveSingleStationWares parameter reverveeStation either does not exist or was not a station!'"/>
+        <debug_to_file name="'apsl.station_eval.log'" text="'ERROR! apsl.lib.ReserveSingleStationWares parameter reverveeStation either does not exist or was not a station!'"/>
         <set_value name="$successResult" exact="false"/>
         <return>
           <retval name="wasSuccessful" value="$successResult"/>
         </return>
       </do_if>
       <do_if value="$resourceData != null and typeof $resourceData != datatype.table">
-        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.ReserveSingleStationWares parameter resourceData was passed in but was not a table!'"/>
+        <debug_to_file name="'apsl.station_eval.log'" text="'ERROR! apsl.lib.ReserveSingleStationWares parameter resourceData was passed in but was not a table!'"/>
         <set_value name="$successResult" exact="false"/>
         <return>
           <retval name="wasSuccessful" value="$operationSuccessful"/>
@@ -78,7 +78,7 @@
           
           <!--If total reservation amounts are already at the max reserve amount, peace out to next.-->
           <do_if value="$resourceData.{$interestedWare}.$totalReservations ge $maxReserveAmount">
-            <debug_to_file name="'apsl.log'" text="'INFO! apsl.Station.ReserveSingleStationWares Station %1 ware %2 is maxxed(%3), skipping reservations'.[$reserverStation.name, $interestedWare.name, $maxReserveAmount]" chance="$debugChance"/>
+            <debug_to_file name="'apsl.station_eval.log'" text="'INFO! apsl.Station.ReserveSingleStationWares Station %1 ware %2 is maxxed(%3), skipping reservations'.[$reserverStation.name, $interestedWare.name, $maxReserveAmount]" chance="$debugChance"/>
             <continue/>
           </do_if>
           
@@ -91,7 +91,7 @@
           <set_value name="$maxTradeAmount" exact="$maxReserveAmount - $resourceData.{$interestedWare}.$totalReservations"/>
 
           <do_if value="$maxTradeAmount le 0">
-            <debug_to_file name="'apsl.log'" text="'WARNING - apsl.lib.ReserveSingleStationWares maxTradeAmount (max reserve - total reservations for a ware) was 0 or less. Should not be possible, something is amiss'"/>
+            <debug_to_file name="'apsl.station_eval.log'" text="'WARNING - apsl.lib.ReserveSingleStationWares maxTradeAmount (max reserve - total reservations for a ware) was 0 or less. Should not be possible, something is amiss'"/>
             <continue/>
           </do_if>
 
@@ -112,13 +112,13 @@
           
           <!--Ok, reservation time!-->
           <add_ware_reservation reserver="$reserverStation" object="$reverveeStationData.$station" ware="$interestedWare" amount="$desiredReserveAmount" type="buy" duration="9999h" result="$reservedAmount"/>
-          <debug_to_file name="'apsl.log'" text="'INFO! apsl.Station.ReserveSingleStationWares Station %1 reserving ware %2 at station %3, %4 total reserved, skipping reservations'.[$reserverStation.name, $interestedWare.name, $reverveeStationData.$station.name, $desiredReserveAmount]" chance="$debugChance"/>
+          <debug_to_file name="'apsl.station_eval.log'" text="'INFO! apsl.Station.ReserveSingleStationWares Station %1 reserving ware %2 at station %3, %4 total reserved, skipping reservations'.[$reserverStation.name, $interestedWare.name, $reverveeStationData.$station.name, $desiredReserveAmount]" chance="$debugChance"/>
           
           <!--Final check to make sure reservedAmount matches up with the station's reserved amount for that ware-->
           <set_value name="$reverveeStationData.$interestedWares.{$interestedWare}" exact="$desiredReserveAmount" operation="add"/>
 
           <do_if value="$reverveeStationData.$interestedWares.{$interestedWare} != $reservedAmount">
-            <debug_to_file name="'apsl.log'" text="'WARNING - apsl.lib.ReserveSingleStationWares - reservedAmount for station did not sync with the desired amount + existing amount. resourcceData total for this ware likely to fall out of sync.'"/>
+            <debug_to_file name="'apsl.station_eval.log'" text="'WARNING - apsl.lib.ReserveSingleStationWares - reservedAmount for station did not sync with the desired amount + existing amount. resourcceData total for this ware likely to fall out of sync.'"/>
             <set_value name="$reverveeStationData.$interestedWares.{$interestedWare}" exact="$reservedAmount"/>
           </do_if>
           

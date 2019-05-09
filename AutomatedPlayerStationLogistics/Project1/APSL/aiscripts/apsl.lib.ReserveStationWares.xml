@@ -12,19 +12,19 @@
       
       <!--Parameter Validation-->
       <do_if value="$stationLogisticsData? == false or typeof $stationLogisticsData != datatype.table">
-        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.ReserveStationWares parameter stationLogisticsData either does not exist or was not a table!'"/>
+        <debug_to_file name="'apsl.station_eval.log'" text="'ERROR! apsl.lib.ReserveStationWares parameter stationLogisticsData either does not exist or was not a table!'"/>
         <return>
           <retval name="wasSuccessful" value="$successResult"/>
         </return>
       </do_if>
       <do_if value="$stationManagerSkill? == false or typeof $stationManagerSkill != datatype.integer">
-        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.ReserveStationWares parameter stationManagerSkill either does not exist or was not an integer!'"/>
+        <debug_to_file name="'apsl.station_eval.log'" text="'ERROR! apsl.lib.ReserveStationWares parameter stationManagerSkill either does not exist or was not an integer!'"/>
         <return>
           <retval name="wasSuccessful" value="$successResult"/>
         </return>
       </do_if>
       <do_if value="$stationsToCalculate != null and typeof $stationsToCalculate != datatype.list">
-        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.EvaluateLogistics parameter stationsToCalculate was not a list!'"/>
+        <debug_to_file name="'apsl.station_eval.log'" text="'ERROR! apsl.lib.EvaluateLogistics parameter stationsToCalculate was not a list!'"/>
         <return>
           <retval name="wasSuccessful" value="$successResult"/>
         </return>

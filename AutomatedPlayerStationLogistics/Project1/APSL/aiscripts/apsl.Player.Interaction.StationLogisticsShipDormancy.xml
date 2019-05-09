@@ -7,7 +7,7 @@
     <actions>
       <!--Parameter Validation-->
       <do_if value="$station? == false or $station.isclass.station == false">
-        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.Player.Interaction.StationLogisticsShipDormancy parameter station either does not exist or was not a station!'"/>
+        <debug_to_file name="'apsl.station_eval.log'" text="'ERROR! apsl.Player.Interaction.StationLogisticsShipDormancy parameter station either does not exist or was not a station!'"/>
         <return>
         </return>
       </do_if>

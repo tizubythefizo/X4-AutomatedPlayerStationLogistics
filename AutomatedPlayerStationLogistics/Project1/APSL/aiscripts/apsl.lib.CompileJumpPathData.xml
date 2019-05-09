@@ -11,7 +11,7 @@
 
       <!--Parameter Validation-->
       <do_if value="$pathList == null or $pathList.count lt 1">
-        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.CompileJumpPathData parameter pathList either does not exist or was empty!'"/>
+        <debug_to_file name="'apsl.station_eval.log'" text="'ERROR! apsl.lib.CompileJumpPathData parameter pathList either does not exist or was empty!'"/>
         <return>
           <retval name="wasSuccessful" value="$wasSuccessful"/>
           <retval name="result" value="$resultData"/>
@@ -30,8 +30,8 @@
       <do_if value="global.$apslData.$debug == true">
         <set_value name="$debugChance" exact="100"/>
 
-        <debug_to_file name="'apsl.log'" text="'Info! apsl.lib.CompileJumpPathData Starting!'"/>
-        <debug_to_file name="'apsl.log'" text="'Info! apsl.lib.CompileJumpPathData Total Path Is As Follows -'"/>
+        <debug_to_file name="'apsl.station_eval.log'" text="'Info! apsl.lib.CompileJumpPathData Starting!'"/>
+        <debug_to_file name="'apsl.station_eval.log'" text="'Info! apsl.lib.CompileJumpPathData Total Path Is As Follows -'"/>
 
         <set_value name="$debugLine" exact="'Structure - '"/>
         <do_all exact="$pathList.count" counter="$debugCounter">
@@ -42,7 +42,7 @@
             <set_value name="$debugLine" exact="$debugLine + $pathList.{$debugCounter}.class + ' - '"/>
           </do_else>
         </do_all>
-        <debug_to_file name="'apsl.log'" text="$debugLine"/>
+        <debug_to_file name="'apsl.station_eval.log'" text="$debugLine"/>
       </do_if>
 
       <set_value name="$pathListCounter" exact="1"/>
@@ -52,7 +52,7 @@
             Structure of table is sector, gateInto, gateOutOf
         -->
 
-        <debug_to_file name="'apsl.log'" text="'Info! apsl.lib.CompileJumpPathData New Iteration (%1), component is %2'.[$pathListCounter, $pathList.{$pathListCounter}.class]" chance="$debugChance"/>
+        <debug_to_file name="'apsl.station_eval.log'" text="'Info! apsl.lib.CompileJumpPathData New Iteration (%1), component is %2'.[$pathListCounter, $pathList.{$pathListCounter}.class]" chance="$debugChance"/>
 
 
         <set_value name="$sectorData" exact="table[]"/>
@@ -69,16 +69,16 @@
         -->
         <do_if value="$pathList.{$pathListCounter}.isclass.sector">
           <!--We landed on a sector, which means we're either in the very first element, or handling a highway connection-->
-          <debug_to_file name="'apsl.log'" text="'Info! apsl.lib.CompileJumpPathData component is sector!'" chance="$debugChance"/>
+          <debug_to_file name="'apsl.station_eval.log'" text="'Info! apsl.lib.CompileJumpPathData component is sector!'" chance="$debugChance"/>
           <do_if value="$pathListCounter == 1">
-            <debug_to_file name="'apsl.log'" text="'Info! apsl.lib.CompileJumpPathData Is first sector!'" chance="$debugChance"/>
+            <debug_to_file name="'apsl.station_eval.log'" text="'Info! apsl.lib.CompileJumpPathData Is first sector!'" chance="$debugChance"/>
             <!-- First case, no gate into-->
             <set_value name="$sectorData.$gateInto" exact="null"/>
             <set_value name="$sectorData.$sector" exact="$pathList.{$pathListCounter}"/>
 
             <!-- Need to do the + 1 check. If it's a sector, that means it's a highway connection and not a jump. Need to handle it.-->
             <do_if value="$pathList.{$pathListCounter + 1}.isclass.sector">
-              <debug_to_file name="'apsl.log'" text="'Info! apsl.lib.CompileJumpPathData Next component in path is a sector, will be highway connection!'" chance="$debugChance"/>
+              <debug_to_file name="'apsl.station_eval.log'" text="'Info! apsl.lib.CompileJumpPathData Next component in path is a sector, will be highway connection!'" chance="$debugChance"/>
               <run_script name="'apsl.lib.GetHighwayPoints'">
                 <param name="startingSector" value="$pathList.{$pathListCounter}" />
                 <param name="endingSector" value="$pathList.{$pathListCounter + 1}" />
@@ -95,7 +95,7 @@
             </do_if>
             <do_else>
               <!-- Next entry is a gate, so the normal use case applies. Add the gate as the sector exit, and move the counter jump to +1 so it skips said gate.-->
-              <debug_to_file name="'apsl.log'" text="'Info! apsl.lib.CompileJumpPathData Next entry is gate!'" chance="$debugChance"/>
+              <debug_to_file name="'apsl.station_eval.log'" text="'Info! apsl.lib.CompileJumpPathData Next entry is gate!'" chance="$debugChance"/>
               <set_value name="$sectorData.$gateOutOf" exact="$pathList.{$pathListCounter + 1}"/>
               <set_value name="$counterJump" exact="1"/>
             </do_else>
@@ -103,26 +103,26 @@
           </do_if>
           <do_else>
             <!-- Highway connection, part two. Should be an existing variable that's tracking the highway exit.-->
-            <debug_to_file name="'apsl.log'" text="'Info! apsl.lib.CompileJumpPathData Sector is part 2 of highway. Previous entry should be sector!'" chance="$debugChance"/>
+            <debug_to_file name="'apsl.station_eval.log'" text="'Info! apsl.lib.CompileJumpPathData Sector is part 2 of highway. Previous entry should be sector!'" chance="$debugChance"/>
 
             <do_if value="$highwayExit? == false">
-              <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.CompileJumpPathData In part 2 of highway, highwayExit should exist but does not'"/>
+              <debug_to_file name="'apsl.station_eval.log'" text="'ERROR! apsl.lib.CompileJumpPathData In part 2 of highway, highwayExit should exist but does not'"/>
             </do_if>
             <set_value name="$sectorData.$gateInto" exact="$highwayExit"/>
             <remove_value name="$highwayExit"/>
 
             <set_value name="$sectorData.$sector" exact="$pathList.{$pathListCounter}"/>
 
-            <debug_to_file name="'apsl.log'" text="'Info! apsl.lib.CompileJumpPathData Checking counter (%1) against list count(%2) for equality'.[$pathListCounter,$pathList.count]" chance="$debugChance"/>
+            <debug_to_file name="'apsl.station_eval.log'" text="'Info! apsl.lib.CompileJumpPathData Checking counter (%1) against list count(%2) for equality'.[$pathListCounter,$pathList.count]" chance="$debugChance"/>
             <do_if value="$pathList.count == $pathListCounter">
               <!--Nothing else to do. This is the end of the line. There is no next sector to check.-->
-              <debug_to_file name="'apsl.log'" text="'Info! apsl.lib.CompileJumpPathData Last sector!'"/>
+              <debug_to_file name="'apsl.station_eval.log'" text="'Info! apsl.lib.CompileJumpPathData Last sector!'"/>
               <set_value name="$sectorData.$gateOutOf" exact="null"/>
               <set_value name="$counterJump" exact="0"/>
             </do_if>
             <do_elseif value="$pathList.{$pathListCounter + 1}.isclass.sector">
               <!--If the next is a sector, need to get the highway entries, and set the entry gate to this iterations table, and prep for the next iteration.-->
-              <debug_to_file name="'apsl.log'" text="'Info! apsl.lib.CompileJumpPathData Next component will be sector. Is a highway connection!'" chance="$debugChance"/>
+              <debug_to_file name="'apsl.station_eval.log'" text="'Info! apsl.lib.CompileJumpPathData Next component will be sector. Is a highway connection!'" chance="$debugChance"/>
               <run_script name="'apsl.lib.GetHighwayPoints'">
                 <param name="startingSector" value="$pathList.{$pathListCounter}" />
                 <param name="endingSector" value="$pathList.{$pathListCounter + 1}" />
@@ -144,9 +144,9 @@
                   Counter jump plus 1, which before the end of this iteration puts the counter to the just gotten sector. Then when the next iteration starts
                   it'll +1 again, putting it to the entry gate for the next sector.
                 -->
-              <debug_to_file name="'apsl.log'" text="'Info! apsl.lib.CompileJumpPathData next sector is a gate!'" chance="$debugChance"/>
+              <debug_to_file name="'apsl.station_eval.log'" text="'Info! apsl.lib.CompileJumpPathData next sector is a gate!'" chance="$debugChance"/>
               <do_if value="$pathList.{$pathListCounter + 1}.isclass.sector == true">
-                <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.CompileJumpPathData The above is a lie!'"/>
+                <debug_to_file name="'apsl.station_eval.log'" text="'ERROR! apsl.lib.CompileJumpPathData The above is a lie!'"/>
               </do_if>
 
               <set_value name="$counterJump" exact="1"/>
@@ -155,25 +155,25 @@
         </do_if>
         <do_else>
           <!--Normal course, it's a gate. -->
-          <debug_to_file name="'apsl.log'" text="'Info! apsl.lib.CompileJumpPathData Curent is exit gate into new sector!'" chance="$debugChance"/>
+          <debug_to_file name="'apsl.station_eval.log'" text="'Info! apsl.lib.CompileJumpPathData Curent is exit gate into new sector!'" chance="$debugChance"/>
           <set_value name="$sectorData.$gateInto" exact="$pathList.{$pathListCounter}"/>
           <!-- +1 will be the sector, and +2 will be either a gate or a sector, or it won't exist. The +1 could be the last element, so check for that-->
 
           <do_if value="$pathList.{$pathListCounter + 1}? == false">
-            <debug_to_file name="'apsl.log'" text="'ERROR! This round is a gate but the next component doesnt exist. Cant end on a gate.'"/>
+            <debug_to_file name="'apsl.station_eval.log'" text="'ERROR! This round is a gate but the next component doesnt exist. Cant end on a gate.'"/>
           </do_if>
 
           <set_value name="$sectorData.$sector" exact="$pathList.{$pathListCounter + 1}"/>
 
           <do_if value="($pathListCounter + 1) == $pathList.count">
-            <debug_to_file name="'apsl.log'" text="'Info! apsl.lib.CompileJumpPathData Last component (+1). This should be a sector'" chance="$debugChance"/>
+            <debug_to_file name="'apsl.station_eval.log'" text="'Info! apsl.lib.CompileJumpPathData Last component (+1). This should be a sector'" chance="$debugChance"/>
             <!--End of the road. No exit gate, so just set the counter jump to + 1, which should cause the loop to end after this iteration.-->
             <set_value name="$sectorData.$gateOutOf" exact="null"/>
             <set_value name="$counterJump" exact="1" />
             <!--Note cause I got confused (complex logic here). If $pathCounter + 1 is not the end of the road, then it's guaranteed there will be a + 2-->
           </do_if>
           <do_elseif value="$pathList.{$pathListCounter + 2}.isclass.sector">
-            <debug_to_file name="'apsl.log'" text="'Info! apsl.lib.CompileJumpPathData + 2 check, it is a sector, meaning highway'" chance="$debugChance"/>
+            <debug_to_file name="'apsl.station_eval.log'" text="'Info! apsl.lib.CompileJumpPathData + 2 check, it is a sector, meaning highway'" chance="$debugChance"/>
             <!--If + 2 is a sector (since +1 has to be a sector, as +0 is a gate) that means +1 and +2 are highway connected.-->
             <!--Need to setup for the sector and highway-->
 
@@ -185,10 +185,10 @@
             </run_script>
 
             <do_if value="$gateEntry? == false">
-              <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.CompileJumpPathData entrance gate of highway was not returned properly from apsl.lib.GetHighwayPoints!'"/>
+              <debug_to_file name="'apsl.station_eval.log'" text="'ERROR! apsl.lib.CompileJumpPathData entrance gate of highway was not returned properly from apsl.lib.GetHighwayPoints!'"/>
             </do_if>
             <do_if value="$highwayExit? == false">
-              <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.CompileJumpPathData exit gate of highway was not returned properly from apsl.lib.GetHighwayPoints!'"/>
+              <debug_to_file name="'apsl.station_eval.log'" text="'ERROR! apsl.lib.CompileJumpPathData exit gate of highway was not returned properly from apsl.lib.GetHighwayPoints!'"/>
             </do_if>
 
             <set_value name="$sectorData.$gateOutOf" exact="$gateEntry"/>
@@ -198,7 +198,7 @@
             <remove_value name="$gateEntry"/>
           </do_elseif>
           <do_else>
-            <debug_to_file name="'apsl.log'" text="'Info! apsl.lib.CompileJumpPathData + 2 check, it is a gate, setting gate out of to +2 and moving iteration to +3'" chance="$debugChance"/>
+            <debug_to_file name="'apsl.station_eval.log'" text="'Info! apsl.lib.CompileJumpPathData + 2 check, it is a gate, setting gate out of to +2 and moving iteration to +3'" chance="$debugChance"/>
             <!-- Normal operation, +2 is a gate which is the entry to the next section. Grab it and advance the counter to the gate after it.-->
             <set_value name="$sectorData.$gateOutOf" exact="$pathList.{$pathListCounter + 2}"/>
 
@@ -219,9 +219,9 @@
 
       <!-- Presumably if we got here, there were no errors. I don't fully know how expression syntax errors are handled. I would hope it would abort the script-->
       <set_value name="$wasSuccessful" exact="true"/>
-      <debug_to_file name="'apsl.log'" text="'Info! apsl.lib.CompileJumpPathData Result as follows'" chance="$debugChance"/>
-      <debug_to_file name="'apsl.log'" text="$resultData" chance="$debugChance"/>
-      <debug_to_file name="'apsl.log'" text="'INFO. apsl.lib.CompileJumpPathData FINISHED!'" chance="$debugChance"/>
+      <debug_to_file name="'apsl.station_eval.log'" text="'Info! apsl.lib.CompileJumpPathData Result as follows'" chance="$debugChance"/>
+      <debug_to_file name="'apsl.station_eval.log'" text="$resultData" chance="$debugChance"/>
+      <debug_to_file name="'apsl.station_eval.log'" text="'INFO. apsl.lib.CompileJumpPathData FINISHED!'" chance="$debugChance"/>
 
       <return>
         <retval name="wasSuccessful" value="$wasSuccessful"/>

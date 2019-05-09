@@ -15,13 +15,13 @@
       
       <!--Parameter Validation-->
       <do_if value="$stationId? == false or (typeof $stationId).isstring != true">
-        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.CalculateAllInRangeStationWares parameter stationId either does not exist or was not a string!'"/>
+        <debug_to_file name="'apsl.station_eval.log'" text="'ERROR! apsl.lib.CalculateAllInRangeStationWares parameter stationId either does not exist or was not a string!'"/>
         <return>
           <retval name="wasSuccessful" value="$successResult"/>
         </return>
       </do_if>
       <do_if value="$stationEntity? == false or $stationEntity.isclass.station == false">
-        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.stationEntity parameter stationEntity either does not exist or was not a station!'"/>
+        <debug_to_file name="'apsl.station_eval.log'" text="'ERROR! apsl.lib.stationEntity parameter stationEntity either does not exist or was not a station!'"/>
         <return>
           <retval name="wasSuccessful" value="$operationSuccessful"/>
         </return>

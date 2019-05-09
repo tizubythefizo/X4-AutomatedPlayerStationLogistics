@@ -13,13 +13,13 @@
       
       <!--Parameter Validation-->
       <do_if value="$interestingStationData? == false or typeof $interestingStationData != datatype.table or $interestingStationData.$rawDistance? == false">
-        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.AddNewStationToInterestedWaresList parameter interestingStationData either does not exist, had no rawDistance property, or was not a table!'"/>
+        <debug_to_file name="'apsl.station_eval.log'" text="'ERROR! apsl.lib.AddNewStationToInterestedWaresList parameter interestingStationData either does not exist, had no rawDistance property, or was not a table!'"/>
         <return>
           <retval name="wasSuccessful" value="$successResult"/>
         </return>
       </do_if>
       <do_if value="$interestingStationsList? == false or typeof $interestingStationsList != datatype.list">
-        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.AddNewStationToInterestedWaresList parameter interestingStationsList either does not exist, or was not a list!'"/>
+        <debug_to_file name="'apsl.station_eval.log'" text="'ERROR! apsl.lib.AddNewStationToInterestedWaresList parameter interestingStationsList either does not exist, or was not a list!'"/>
         <return>
           <retval name="wasSuccessful" value="$successResult"/>
         </return>

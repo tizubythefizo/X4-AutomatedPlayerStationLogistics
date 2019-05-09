@@ -120,14 +120,12 @@
             This indicates something's gone really horribly wrong. Something really bad happened with the creation script, 
             since the only fail-state it should have is station data already exists, which is checked up above.
         -->
-          <debug_to_file name="'apsl.log'" text="'APSL ERROR! Station logistics data creation failure (apsl.station.logisicsmanager/init). stationID: %1'.[this.station.idcode]" />
+          <debug_to_file name="'apsl.station_eval.log'" text="'APSL ERROR! Station logistics data creation failure (apsl.station.logisicsmanager/init). stationID: %1'.[this.station.idcode]" />
           <!--TODO: Notify player something broke and to not save their game. Will be terminating all scripts on this entity immediately.-->
           <!-- Call an interrupt script to handle the notification -->
           <abort_scripts entity="this"/>
         </do_if>
-      </do_if>
-
-
+      </do_if>      
 
       <!--Check for subordinate traders-->
       <do_if value="this.station.subordinates.{assignment.trade}.count gt 0">
@@ -163,7 +161,7 @@
         <param name="station" value="this.station"/>
       </run_script>
       <!--********* End INIT Logic *********-->
-      <debug_to_file name="'apsl.log'" text="'INFO! apsl.Station.LogisticsManager %1 Init(not init element) logic finished'.[this.station.name]" chance="$debugChance"/>
+      <debug_to_file name="'apsl.station_eval.log'" text="'INFO! apsl.Station.LogisticsManager %1 Init(not init element) logic finished'.[this.station.name]" chance="$debugChance"/>
 
       <!--
         TODO: Need to figure out a good place to call shutdown. Also need a place to check if there's a trade ship subordinated to the station. The first time there's a ship attached (either
@@ -172,7 +170,7 @@
 
       <!--Create a loop that only exits if this entity has been unassigned from their post as manager (not sure if firing causes the entity to cease existing?)-->
       <do_while value="$keepScriptAlive == true">
-        <debug_to_file name="'apsl.log'" text="'INFO! apsl.Station.LogisticsManager %1 Interval loop starting...'.[this.station.name]" chance="$debugChance"/>
+        <debug_to_file name="'apsl.station_eval.log'" text="'INFO! apsl.Station.LogisticsManager %1 Interval loop starting...'.[this.station.name]" chance="$debugChance"/>
         <!--Insurance check for if the manager has somehow been removed from the station -->
         <do_if value="this.station? == false">
           <set_value name="$thisStationLogisticsData.$isLogisticsActive" exact="false"/>
@@ -182,7 +180,7 @@
           <break/>
         </do_if>
 
-        <debug_to_file name="'apsl.log'" text="'INFO! apsl.Station.LogisticsManager %1 checking for subordinate traders'.[this.station.name]" chance="$debugChance"/>
+        <debug_to_file name="'apsl.station_eval.log'" text="'INFO! apsl.Station.LogisticsManager %1 checking for subordinate traders'.[this.station.name]" chance="$debugChance"/>
         <!--Check for subordinate traders-->
         <do_if value="this.station.subordinates.{assignment.trade}.count lt 1">
           <do_if value="$hasSubordinateTrader == true">
@@ -205,7 +203,7 @@
           </do_if>
         </do_else>
 
-        <debug_to_file name="'apsl.log'" text="'INFO! apsl.Station.LogisticsManager %1 checking for cargo drones'.[this.station.name]" chance="$debugChance"/>
+        <debug_to_file name="'apsl.station_eval.log'" text="'INFO! apsl.Station.LogisticsManager %1 checking for cargo drones'.[this.station.name]" chance="$debugChance"/>
         <!--Check for cargo drones-->
         <do_if value="this.station.availableunits.{unitcategory.transport}.count lt 1">
           <!--If it had drones, but now doesn't, crap. Initiate full dormancy mode.-->
@@ -232,7 +230,7 @@
 
         <!--Periodic check for new stations. Does not need to happen often. Like once per half hour. Extreme edge case.-->
         <do_if value="$checkForNewStations == true">
-          <debug_to_file name="'apsl.log'" text="'INFO! apsl.Station.LogisticsManager %1 checking for new stations in range'.[this.station.name]" chance="$debugChance"/>
+          <debug_to_file name="'apsl.station_eval.log'" text="'INFO! apsl.Station.LogisticsManager %1 checking for new stations in range'.[this.station.name]" chance="$debugChance"/>
           <run_script name="'apsl.lib.ProcessAllStationsInRange'">
             <param name="stationLogisticsTable" value="$thisStationLogisticsData"/>
           </run_script>
@@ -251,7 +249,7 @@
 
         <!--If there is a queued evaluation, now we can re-evaluate-->
         <do_if value="$isQueuedEvaluate == true">
-          <debug_to_file name="'apsl.log'" text="'INFO! apsl.Station.LogisticsManager %1 begining evaluation logic'.[this.station.name]" chance="$debugChance"/>
+          <debug_to_file name="'apsl.station_eval.log'" text="'INFO! apsl.Station.LogisticsManager %1 begining evaluation logic'.[this.station.name]" chance="$debugChance"/>
           <!--Set this right away,so if anything gets triggered up while processing it'll be accounted for.-->
           <set_value name="$isQueuedEvaluate" exact="false"/>
 
@@ -297,7 +295,7 @@
         <!--This may only need to run like once every 2-4 minutes or so.-->
         <!--TODO: Don't forget debug info for it...-->
 
-        <debug_to_file name="'apsl.log'" text="'INFO! apsl.Station.LogisticsManager %1 Sleep wait...'.[this.station.name]" chance="$debugChance"/>
+        <debug_to_file name="'apsl.station_eval.log'" text="'INFO! apsl.Station.LogisticsManager %1 Sleep wait...'.[this.station.name]" chance="$debugChance"/>
         <!--Sleep. Might need to play around with the time a bit to find a good balance.-->
         <wait exact="$mainActionSleepTime">
           <!--Might want some interrupt conditions at some point in the future?-->
@@ -311,7 +309,7 @@
         </do_if>
       </do_while>
 
-      <debug_to_file name="'apsl.log'" text="'INFO! apsl.Station.LogisticsManager %1 shutting down'.[$thisStationLogisticsData.$station.name]" chance="$debugChance"/>
+      <debug_to_file name="'apsl.station_eval.log'" text="'INFO! apsl.Station.LogisticsManager %1 shutting down'.[$thisStationLogisticsData.$station.name]" chance="$debugChance"/>
 
       <!--Exitting, just make sure everything is shut down.-->
       <run_script name="'apsl.lib.StationShutdown'">

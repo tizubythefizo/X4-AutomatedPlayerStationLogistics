@@ -11,6 +11,7 @@
       <actions>
         <!--If the master table does not exist, create it-->
         <do_if value="global.$apslData? == false">
+          <debug_to_file name="'apsl.log'" text="'INFO - APSL data not found, beginning install...'" append="false"/>
           <set_value name="global.$apslData" exact="table[]"/>
           <set_value name="global.$apslData.$stationLogisticsData" exact="table[]"/>
           <set_value name="global.$apslData.$debugToFile" exact="false"/>
@@ -26,15 +27,35 @@
           <set_value name="global.$apslData.$absoluteMaxStationRange" exact="5"/>
           <set_value name="global.$apslData.$resourceCriticalityThreshold" exact="0.10f"/>
           <set_value name="global.$apslData.$maxReservationLimit" exact="0.9f"/>
-          <!--Set this to true to get more verbose debugging printed to apsl.log-->
+          <!--Set this to true to get more verbose debugging printed to apsl.station_eval.log-->
           <set_value name="global.$apslData.$debug" exact="true"/>
+          <debug_to_file name="'apsl.log'" text="'INFO - APSL data created!'" append="false"/>
+
+          <debug_to_file name="'apsl.log'" text="'INFO - Beginning trade.station restarts on all station manangers...'"/>
+          <!--Reset all trade.station scripts-->
+          <find_station space="player.galaxy" checkoperational="true" multiple="true" name="$stationsList" />
+
+          <do_if value="$stationsList? == true and $stationsList.count gt 0">
+            <debug_to_file name="'apsl.log'" text="'INFO - Restarting trade.station scripts, %1 total stations found (not all may have managers)'.[$stationsList.count]"/>
+            <do_all exact="$stationsList.count" counter="$stationCounter">
+              <do_if value="$stationsList.{$stationCounter}.tradenpc != null">
+                <debug_to_file name="'apsl.log'" text="'INFO - Restarting trade.station scripts, Found! station %1 manager %2, restarting trade.station'.[$stationsList.{$stationCounter}.name,$stationsList.{$stationCounter}.tradenpc.name]"/>
+
+                <start_script name="'trade.station'" object="$stationsList.{$stationCounter}.tradenpc" >
+                </start_script>
+              </do_if>
+            </do_all>
+          </do_if>
+          
+          <!--TODO: Restart script on all trade ships?-->
           
           <!--Notify player the mod is installed.-->
-          <debug_to_file name="'apsl.log'" text="'INFO - APSL has been installed!'" append="false"/>
+          <debug_to_file name="'apsl.log'" text="'INFO - APSL has been installed!'" />
+          <debug_to_file name="'apsl.station_eval.log'" text="'INFO - station evaluation debug logging started'" append="false"/>
           <show_help duration="10s" custom="{98776,2}"/>
         </do_if>
         <do_else>
-          <debug_to_file name="'apsl.log'" text="'INFO - APSL already installed - creating new logfile for this run.'" append="false"/>
+          <debug_to_file name="'apsl.station_eval.log'" text="'INFO - APSL already installed - creating new logfile for this run.'" append="false"/>
           <!--Uncomment when loading a save game with apsl already installed. Set to true if debugging is desired. Don't forget to set it back to false when done-->
           <!--<set_value name="global.$apslData.$debug" exact="false"/>-->
         </do_else>

@@ -18,35 +18,35 @@
 
       <!--Parameter Validation-->
       <do_if value="$seekingStation.exists == false or $seekingStation.isclass.station == false">
-        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.CalculateInterestedWares parameter seekingStation either does not exist or was not a station!'"/>
+        <debug_to_file name="'apsl.station_eval.log'" text="'ERROR! apsl.lib.CalculateInterestedWares parameter seekingStation either does not exist or was not a station!'"/>
         <return>
           <retval name="wasSuccessful" value="$operationSuccessful"/>
           <retval name="result" value="null"/>
         </return>
       </do_if>
       <do_if value="$stationOfInterest.exists == false or $stationOfInterest.isclass.station == false">
-        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.CalculateInterestedWares parameter stationOfInterest either does not exist or was not a station!'"/>
+        <debug_to_file name="'apsl.station_eval.log'" text="'ERROR! apsl.lib.CalculateInterestedWares parameter stationOfInterest either does not exist or was not a station!'"/>
         <return>
           <retval name="wasSuccessful" value="$operationSuccessful"/>
           <retval name="result" value="null"/>
         </return>
       </do_if>
       <do_if value="$existingWareTable != null and typeof $existingWareTable != datatype.table">
-        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.CalculateInterestedWares parameter existingWareTable was passed in but was not a table!'"/>
+        <debug_to_file name="'apsl.station_eval.log'" text="'ERROR! apsl.lib.CalculateInterestedWares parameter existingWareTable was passed in but was not a table!'"/>
         <return>
           <retval name="wasSuccessful" value="$operationSuccessful"/>
           <retval name="result" value="null"/>
         </return>
       </do_if>
       <do_if value="$resourceData != null and typeof $resourceData != datatype.table">
-        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.CalculateInterestedWares parameter resourceData was passed in but was not a table!'"/>
+        <debug_to_file name="'apsl.station_eval.log'" text="'ERROR! apsl.lib.CalculateInterestedWares parameter resourceData was passed in but was not a table!'"/>
         <return>
           <retval name="wasSuccessful" value="$operationSuccessful"/>
           <retval name="result" value="null"/>
         </return>
       </do_if>
       <do_if value="$buyOffers != null and typeof $buyOffers != datatype.list">
-        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.CalculateInterestedWares parameter buyOffers was passed in but was not a list!'"/>
+        <debug_to_file name="'apsl.station_eval.log'" text="'ERROR! apsl.lib.CalculateInterestedWares parameter buyOffers was passed in but was not a list!'"/>
         <return>
           <retval name="wasSuccessful" value="$operationSuccessful"/>
           <retval name="result" value="null"/>
@@ -73,7 +73,7 @@
         <!-- If there was nothing found of interest, remove all existing entries in the table if they exist, as the station has nothing interesting anymore-->
         <!--If the result table is already empty, no need to do anything. Otherwise need to remove all the entries.-->
         <do_if value="$resultTable.keys.count ge 1">
-          <debug_to_file name="'apsl.log'" text="'INFO! apsl.Station.CalculateInterestedWares Station %1 Calculated wares for Station %2, nothing needed. Releasing any reservations here.'.[$seekingStation.name, $stationOfInterest.name]" chance="$debugChance"/>
+          <debug_to_file name="'apsl.station_eval.log'" text="'INFO! apsl.Station.CalculateInterestedWares Station %1 Calculated wares for Station %2, nothing needed. Releasing any reservations here.'.[$seekingStation.name, $stationOfInterest.name]" chance="$debugChance"/>
           <!--Since it's bad form to remove things from a list you're iterating over, build a second list of things to remove...-->
           <set_value name="$itemsToRemove" exact="$resultTable.clone"/>
 
@@ -94,32 +94,38 @@
         </do_if>
       </do_if>
       <do_else>
-        <!-- The station does have some interesting wares. Need to parse the results and add any to the result table that don't already exist.-->
+        <!-- The station might have some interesting wares. Need to parse the results and add any to the result table that don't already exist if this station has buy orders for the ware.-->
+        <do_if value="$buyOffers == null">
+          <find_buy_offer buyer="$seekingStation" excludeempty="false" multiple="true" result="$buyOffers"/>
+        </do_if>
 
         <do_all exact="$sellOffers.count" counter="$offerCounter">
-          <!--If the wares are already tracked, do nothing. If they are not yet tracked, add them to the table-->
-          <do_if value="$resultTable.{$sellOffers.{$offerCounter}.ware}? == false">
-            <!-- Found one that's not tracked yet. Make sure it's a cargo ware.-->
-            <do_if value="$sellOffers.{$offerCounter}.ware.iscargo == true">
-              <!--Add it to the list to be tracked with a reservation amount of 0.-->
-              <set_value name="$resultTable.{$sellOffers.{$offerCounter}.ware}" exact="0"/>
 
-              <do_if value="$resourceData.{$sellOffers.{$offerCounter}.ware}? == false">
-                <set_value name="$resourceData.{$sellOffers.{$offerCounter}.ware}" exact="table[]"/>
-                <set_value name="$resourceData.{$sellOffers.{$offerCounter}.ware}.$isCritical" exact="false"/>
-                <set_value name="$resourceData.{$sellOffers.{$offerCounter}.ware}.$totalReservations" exact="0"/>
+          <do_all exact="$buyOffers.count" counter="$interestedBuyOfferCounter">
+            <do_if value="$sellOffers.{$offerCounter}.ware == $buyOffers.{$interestedBuyOfferCounter}.ware">
+              <!--If the wares are already tracked, do nothing. If they are not yet tracked, add them to the table-->
+              <do_if value="$resultTable.{$sellOffers.{$offerCounter}.ware}? == false">
+                <!-- Found one that's not tracked yet. Make sure it's a cargo ware.-->
+                <do_if value="$sellOffers.{$offerCounter}.ware.iscargo == true">
+                  <!--Add it to the list to be tracked with a reservation amount of 0.-->
+                  <set_value name="$resultTable.{$sellOffers.{$offerCounter}.ware}" exact="0"/>
+
+                  <do_if value="$resourceData.{$sellOffers.{$offerCounter}.ware}? == false">
+                    <set_value name="$resourceData.{$sellOffers.{$offerCounter}.ware}" exact="table[]"/>
+                    <set_value name="$resourceData.{$sellOffers.{$offerCounter}.ware}.$isCritical" exact="false"/>
+                    <set_value name="$resourceData.{$sellOffers.{$offerCounter}.ware}.$totalReservations" exact="0"/>
+                  </do_if>
+
+                  <debug_to_file name="'apsl.station_eval.log'" text="'INFO! apsl.Station.CalculateInterestedWares Station %1 found new interesting ware at station %2. Now tracking %3'.[$seekingStation.name, $stationOfInterest.name, $sellOffers.{$offerCounter}.ware.name]" chance="$debugChance"/>
+                </do_if>
               </do_if>
-              
-              <debug_to_file name="'apsl.log'" text="'INFO! apsl.Station.CalculateInterestedWares Station %1 found new interesting ware at station %2. Now tracking %3'.[$seekingStation.name, $stationOfInterest.name, $sellOffers.{$offerCounter}.ware.name]" chance="$debugChance"/>
             </do_if>
-          </do_if>
+          </do_all>
         </do_all>
 
         <!--Need to also prune the interested wares if there are now wares in the interested list that are not wanted by our home station...-->
 
-        <do_if value="$buyOffers == null">
-          <find_buy_offer buyer="$seekingStation" excludeempty="false" multiple="true" result="$buyOffers"/>
-        </do_if>
+        
 
         <!--If it exists on the interestedWares table, but not on the seekingStation's buy offer list, nix it from interestedWares -->
         <set_value name="$itemsToRemove" exact="$resultTable.clone"/>
@@ -146,7 +152,7 @@
               </do_if>
 
               <remove_ware_reservation object="$stationOfInterest" reserver="$seekingStation" ware="$itemsToRemove.keys.{$pruneCounter}"/>
-              <debug_to_file name="'apsl.log'" text="'INFO! apsl.Station.CalculateInterestedWares Station %1 found ware no longer sold by station %2. Now removing %3'.[$seekingStation.name, $stationOfInterest.name, $itemsToRemove.keys.{$pruneCounter}.name]" chance="$debugChance"/>
+              <debug_to_file name="'apsl.station_eval.log'" text="'INFO! apsl.Station.CalculateInterestedWares Station %1 found ware no longer sold by station %2. Now removing %3'.[$seekingStation.name, $stationOfInterest.name, $itemsToRemove.keys.{$pruneCounter}.name]" chance="$debugChance"/>
             </do_if>
 
             <remove_value name="$resultTable.{$itemsToRemove.keys.{$pruneCounter}}"/>
