@@ -7,6 +7,7 @@
   </params>
   <attention min="unknown">
     <actions>
+      <set_value name="$debugChance" exact="0"/>
       <set_value name="$successResult" exact="false"/>
       
       <!--Parameter Validation-->
@@ -22,6 +23,10 @@
           <retval name="wasSuccessful" value="$successResult"/>
         </return>
       </do_if>
+
+      <do_if value="global.$apslData.$debug == true">
+        <set_value name="$debugChance" exact="100"/>
+      </do_if>
       
       <!--Main Logic-->      
       <do_if value="$buyOffers == null">
@@ -32,7 +37,8 @@
         <do_if value="$buyOffers.{$offerCounter}.ware.iscargo == true">
           
           <!--If it's not already tracked on resource data, track it.-->
-          <do_if value="$stationLogisticsData.$resourceData.{$buyOffers.{$offerCounter}.ware}? == false">            
+          <do_if value="$stationLogisticsData.$resourceData.{$buyOffers.{$offerCounter}.ware}? == false">
+            <debug_to_file name="'apsl.log'" text="'INFO! apsl.Station.EvaluateResourceCriticality Station %1 found untracked resourceData ware - %2'.[$stationLogisticsData.$station.name, $buyOffers.{$offerCounter}.ware.name]" chance="$debugChance"/>
             <set_value name="$stationLogisticsData.$resourceData.{$buyOffers.{$offerCounter}.ware}" exact="table[]"/>
             <set_value name="$stationLogisticsData.$resourceData.{$buyOffers.{$offerCounter}.ware}.$isCritical" exact="false"/>
             <set_value name="$stationLogisticsData.$resourceData.{$buyOffers.{$offerCounter}.ware}.$totalReservations" exact="0"/>
@@ -40,15 +46,33 @@
           
           <do_if value="$buyOffers.{$offerCounter}.stocklevel le $criticalityLevel">
             <set_value name="$stationLogisticsData.$resourceData.{$buyOffers.{$offerCounter}.ware}.$isCritical" exact="true"/>
-            
+
+            <debug_to_file name="'apsl.log'" text="'INFO! apsl.Station.EvaluateResourceCriticality Station %1 ware is critical - %2'.[$stationLogisticsData.$station.name, $buyOffers.{$offerCounter}.ware.name]" chance="$debugChance"/>
             <!-- This ware is critical, make sure reservations for it are capped to 50% so the buy price will be high enough for some buy orders to come in-->
             <do_if value="$stationLogisticsData.$resourceData.{$buyOffers.{$offerCounter}.ware}.$totalReservations gt 0">
               <!--The goal is that if the amount of reservations is 50% or more of the target level, free up reservations down to 50%...-->
-              <set_value name="$reservedRatio" exact="($stationLogisticsData.$resourceData.{$buyOffers.{$offerCounter}.ware}.totalReservations)f / $stationLogisticsData.$station.cargo.{$buyOffers.{$offerCounter}}.target"/>
+              <!--Possible divide by zero, need to account for that.-->
+
+              <do_if value="($stationLogisticsData.$resourceData.{$buyOffers.{$offerCounter}.ware}.$totalReservations)f != 0f and $stationLogisticsData.$station.cargo.{$buyOffers.{$offerCounter}.ware}.target != 0">
+                <set_value name="$reservedRatio" exact="($stationLogisticsData.$resourceData.{$buyOffers.{$offerCounter}.ware}.$totalReservations)f / $stationLogisticsData.$station.cargo.{$buyOffers.{$offerCounter}.ware}.target"/>
+              </do_if>
+              <do_elseif value="($stationLogisticsData.$resourceData.{$buyOffers.{$offerCounter}.ware}.$totalReservations)f != 0f">
+                <!--0 things on reserve, reservedRatio is 0-->
+                <set_value name="$reservedRatio" exact="0f"/>
+              </do_elseif>
+              <do_else>
+                <!--Cargo target is 0...this is really unusual. Log it and set reservedRation to 100%-->
+                <debug_to_file name="'apsl.log'" text="'WARNING! apsl.lib.EvaluateResourceCriticality Station %1 has reservations for ware %2 but its target amount is 0...whaa?'.[$stationLogisticsData.$station.name,$buyOffers.{$offerCounter}.ware.name]"/>
+                <set_value name="$reservedRatio" exact="1f"/>
+              </do_else>
+
+              <debug_to_file name="'apsl.log'" text="'INFO! apsl.Station.EvaluateResourceCriticality Station %1 reserved ratio for ware - %2 - %3'.[$stationLogisticsData.$station.name, $buyOffers.{$offerCounter}.ware.name, $reservedRatio]" chance="$debugChance"/>
 
               <do_if value="$reservedRatio gt 0.5f">
                 <!-- Figure out how many reservations to cancel. Should be current (ratio - 0.5) * reservation amount -->
                 <set_value name="$reservationsToDrop" exact="((($reservedRatio - 0.5f) * $stationLogisticsData.$resourceData.{$buyOffers.{$offerCounter}.ware}.$totalReservations) + 1)i"/>
+
+                <debug_to_file name="'apsl.log'" text="'INFO! apsl.Station.EvaluateResourceCriticality Station %1 dropping ware - %2 by %3'.[$stationLogisticsData.$station.name, $buyOffers.{$offerCounter}.ware.name, $reservationsToDrop]" chance="$debugChance"/>
 
                 <set_value name="$stationCounter" exact="$stationLogisticsData.$stationsInRange.count"/>
                 <do_while value="$reservationsToDrop gt 0">

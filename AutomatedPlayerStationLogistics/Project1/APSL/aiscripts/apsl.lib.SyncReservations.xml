@@ -12,6 +12,7 @@
   </params>
   <attention min="unknown">
     <actions>
+      <set_value name="$debugChance" exact="0"/>
       <set_value name="$successResult" exact="false"/>
 
       <!--Parameter Validation-->
@@ -27,8 +28,8 @@
           <retval name="wasSuccessful" value="$successResult"/>
         </return>
       </do_if>
-      <do_if value="$station? == false  or typeof $station.isclass.station != true">
-        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.SyncReservations parameter station either does not exist or was not a station! - %1'.[$station]"/>
+      <do_if value="$station? == false  or $station.isclass.station != true">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.SyncReservations parameter station either does not exist or was not a station! - %1'.[$station.name]"/>
         <return>
           <retval name="wasSuccessful" value="$successResult"/>
         </return>
@@ -39,6 +40,11 @@
           <retval name="wasSuccessful" value="$successResult"/>
         </return>
       </do_if>
+
+      <do_if value="global.$apslData.$debug == true">
+        <set_value name="$debugChance" exact="100"/>
+      </do_if>
+      
       <!--Main Logic-->
       <set_value name="$successResult" exact="false"/>
 
@@ -50,12 +56,12 @@
       <run_script name="'apsl.lib.PruneResourceData'">
         <param name="resourceData" value="$resourceData"/>
         <param name="buyOffers" value="$buyOffers"/>
-        <param name="interestedStationsData" value="$inRangeStations"/>
+        <param name="interestedStationsList" value="$inRangeStations"/>
         <param name="station" value="$station"/>
       </run_script>
 
       <!-- Next, go through each buy offer (that iscargo) amd for each one check the stations with interested wares. Sum all the reservations up and check them against resourceData. Fix any descrepencies-->
-      <do_all exact="$buyOffers" counter="$buyCounter">
+      <do_all exact="$buyOffers.count" counter="$buyCounter">
         <set_value name="$reservationSum" exact="0"/>
 
         <do_all exact="$inRangeStations.count" counter="$innerCounter">
@@ -63,6 +69,15 @@
             <set_value name="$reservationSum" exact="$inRangeStations.{$innerCounter}.$interestedWares.{$buyOffers.{$buyCounter}.ware}" operation="add"/>
           </do_if>
         </do_all>
+
+        <debug_to_file name="'apsl.log'" text="'INFO! apsl.Station.SyncReservations Station %1 ware %2 reservation total %3'.[$station.name, $buyOffers.{$buyCounter}.ware.name, $reservationSum]" chance="$debugChance"/>
+
+        <do_if value="$resourceData.{$buyOffers.{$buyCounter}.ware}? == false">
+          <debug_to_file name="'apsl.log'" text="'INFO! apsl.Station.SyncReservations Station %1 ware %2 was not tracked in resource data, tracking'.[$station.name, $buyOffers.{$buyCounter}.ware.name]" chance="$debugChance"/>
+          <set_value name="$resourceData.{$buyOffers.{$buyCounter}.ware}" exact="table[]"/>
+          <set_value name="$resourceData.{$buyOffers.{$buyCounter}.ware}.$isCritical" exact="false"/>
+          <set_value name="$resourceData.{$buyOffers.{$buyCounter}.ware}.$totalReservations" exact="0"/>
+        </do_if>
 
         <set_value name="$resourceData.{$buyOffers.{$buyCounter}.ware}.$totalReservations" exact="$reservationSum"/>
 

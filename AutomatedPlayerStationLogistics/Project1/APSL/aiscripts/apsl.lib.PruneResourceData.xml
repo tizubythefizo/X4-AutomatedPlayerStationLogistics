@@ -7,11 +7,12 @@
   <params>
     <param name="resourceData" comment="REQUIRED! The resource data able of the station to prune"/>
     <param name="buyOffers" comment="REQUIRED! The buy offers to sync the prune to."/>
-    <param name="interestedStationsData" comment="REQUIRED! The interested stations data list for the station"/>
+    <param name="interestedStationsList" comment="REQUIRED! The interested stations data list for the station"/>
     <param name="station" comment="REQUIRED! The station that is conducting the pruning."/>
   </params>
   <attention min="unknown">
     <actions>
+      <set_value name="$debugChance" exact="0"/>
       <set_value name="$successResult" exact="false"/>
 
       <!--Parameter Validation-->
@@ -27,38 +28,47 @@
           <retval name="wasSuccessful" value="$successResult"/>
         </return>
       </do_if>
-      <do_if value="$station == null  or typeof $station.isclass.station != true">
+      <do_if value="$station == null  or $station.isclass.station != true">
         <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.PruneResourceData parameter station either does not exist or was not a station!'"/>
         <return>
           <retval name="wasSuccessful" value="$successResult"/>
         </return>
       </do_if>
-      <do_if value="$interestedStationsData? == false or typeof $interestedStationsData != datatype.list">
-        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.PruneResourceData parameter interestedStationsData either does not exist or was not a list!'"/>
+      <do_if value="$interestedStationsList? == false or typeof $interestedStationsList != datatype.list">
+        <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.PruneResourceData parameter interestedStationsList either does not exist or was not a list!'"/>
         <return>
           <retval name="wasSuccessful" value="$successResult"/>
         </return>
       </do_if>
+
+      <do_if value="global.$apslData.$debug == true">
+        <set_value name="$debugChance" exact="100"/>
+      </do_if>
+      
+      <!--Main Logic-->
 
       <set_value name="$pruneList" exact="$resourceData.keys.list.clone"/>
 
       <!--Go through the list of resource data wares and if it's not found in the buy offers list, mark it for pruning.-->
       <do_all exact="$pruneList.count" counter="$pruneCounter">
         <set_value name="$wasFound" exact="false"/>
-
+        
         <do_all exact="$buyOffers.count" counter="$innerCounter">
-          <do_if value="$buyOffers.{$innerCounter}.ware == $stationLogisticsData.$resourceData.{$pruneList.{$pruneCounter}}">
+          <debug_to_file name="'apsl.log'" text="'INFO! apsl.Station.PruneResourceData Station %1 comparing wares for pruning - if %2 == %3'.[$station.name, $buyOffers.{$innerCounter}.ware, $pruneList.{$pruneCounter}]" chance="$debugChance"/>
+          <do_if value="$buyOffers.{$innerCounter}.ware == $pruneList.{$pruneCounter}">
             <set_value name="$wasFound" exact="true"/>
+            <debug_to_file name="'apsl.log'" text="'INFO! apsl.Station.PruneResourceData Station %1 match found! - %2'.[$station.name, $buyOffers.{$innerCounter}.ware.name]" chance="$debugChance"/>
             <break/>
-          </do_if>
+          </do_if>                    
         </do_all>
 
         <do_if value="$wasFound == false">
           <!--Need to scan through stations and also prune off the stations' data, making sure to release ware reservations.-->
-          <do_all exact="$interestedStationsData" counter="$stationCounter">
-            <do_if value="$interestedStationsData.{$stationCounter}.$interestedWares.{$pruneList.{$pruneCounter}}?">
-              <remove_ware_reservation object="$interestedStationsData.$station" reserver="$station" ware="$pruneList.{$pruneCounter}"/>
-              <remove_value name="$interestedStationsData.{$stationCounter}.$interestedWares.{$pruneList.{$pruneCounter}}"/>
+          <debug_to_file name="'apsl.log'" text="'INFO! apsl.Station.PruneResourceData Station %1 ware %2 being pruned'.[$station.name, $pruneList.{$pruneCounter}.name]" chance="$debugChance"/>
+          <do_all exact="$interestedStationsList.count" counter="$stationCounter">
+            <do_if value="$interestedStationsList.{$stationCounter}.$interestedWares.{$pruneList.{$pruneCounter}}?">
+              <remove_ware_reservation object="$interestedStationsList.{$stationCounter}.$station" reserver="$station" ware="$pruneList.{$pruneCounter}"/>
+              <remove_value name="$interestedStationsList.{$stationCounter}.$interestedWares.{$pruneList.{$pruneCounter}}"/>
             </do_if>
           </do_all>
 

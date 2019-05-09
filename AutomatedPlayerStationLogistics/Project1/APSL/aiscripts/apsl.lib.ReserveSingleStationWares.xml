@@ -7,6 +7,7 @@
   </params>
   <attention min="unknown">
     <actions>
+      <set_value name="$debugChance" exact="0"/>
       <!--Unlike most, this is true by default. Because not finding anything to do is a valid result.-->
       <set_value name="$successResult" exact="true"/>
       
@@ -32,6 +33,10 @@
           <retval name="wasSuccessful" value="$operationSuccessful"/>
           <retval name="result" value="null"/>
         </return>
+      </do_if>
+
+      <do_if value="global.$apslData.$debug == true">
+        <set_value name="$debugChance" exact="100"/>
       </do_if>
       
       
@@ -64,7 +69,7 @@
           -->
           <set_value name="$maxReserveAmount" exact="0"/>
 
-          <do_if value="$resourceData.{$interestedWare}.isCritical == true">
+          <do_if value="$resourceData.{$interestedWare}.$isCritical == true">
             <set_value name="$maxReserveAmount" exact="($reserverStation.cargo.{$interestedWare}.target * 0.5f)i"/>
           </do_if>
           <do_else>
@@ -73,6 +78,7 @@
           
           <!--If total reservation amounts are already at the max reserve amount, peace out to next.-->
           <do_if value="$resourceData.{$interestedWare}.$totalReservations ge $maxReserveAmount">
+            <debug_to_file name="'apsl.log'" text="'INFO! apsl.Station.ReserveSingleStationWares Station %1 ware %2 is maxxed(%3), skipping reservations'.[$reserverStation.name, $interestedWare.name, $maxReserveAmount]" chance="$debugChance"/>
             <continue/>
           </do_if>
           
@@ -106,6 +112,7 @@
           
           <!--Ok, reservation time!-->
           <add_ware_reservation reserver="$reserverStation" object="$reverveeStationData.$station" ware="$interestedWare" amount="$desiredReserveAmount" type="buy" duration="9999h" result="$reservedAmount"/>
+          <debug_to_file name="'apsl.log'" text="'INFO! apsl.Station.ReserveSingleStationWares Station %1 reserving ware %2 at station %3, %4 total reserved, skipping reservations'.[$reserverStation.name, $interestedWare.name, $reverveeStationData.$station.name, $desiredReserveAmount]" chance="$debugChance"/>
           
           <!--Final check to make sure reservedAmount matches up with the station's reserved amount for that ware-->
           <set_value name="$reverveeStationData.$interestedWares.{$interestedWare}" exact="$desiredReserveAmount" operation="add"/>

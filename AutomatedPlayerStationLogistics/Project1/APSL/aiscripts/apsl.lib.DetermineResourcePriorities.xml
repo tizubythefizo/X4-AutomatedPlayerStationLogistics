@@ -6,9 +6,10 @@
   </params>
   <attention min="unknown">
     <actions>
+      <set_value name="$debugChance" exact="0"/>
       <set_value name="$successResult" exact="false"/>
       <set_value name="$result" exact="null"/>
-      
+
       <!--Parameter Validation-->
       <do_if value="$stationLogisticsData? == false or typeof $stationLogisticsData != datatype.table">
         <debug_to_file name="'apsl.log'" text="'ERROR! apsl.lib.DetermineResourcePriorities parameter stationLogisticsData either does not exist or was not a table!'"/>
@@ -24,14 +25,19 @@
           <retval name="result" value="null"/>
         </return>
       </do_if>
-      
-      
+
+      <do_if value="global.$apslData.$debug == true">
+        <set_value name="$debugChance" exact="100"/>
+      </do_if>
+
+      <!--Main Logic-->
+
       <!--First, get the "buy" list for the station which will tell me everything the station wants to buy. -->
       <do_if value="$buyOffers == null">
-        <find_buy_offer buyer="$stationLogisticsData.$station" multiple="true" result="$buyOffers" />  
+        <find_buy_offer buyer="$stationLogisticsData.$station" multiple="true" result="$buyOffers" />
       </do_if>
-      
-      
+
+
       <!--Then go through the list and check the percentage of stock that's currently filled (taking into account reservations if possible)-->
       <!--Using buy offer amount should account for reservations. I think target stock - buy offer amount = (current stored + reserved = x) -->
       <!--x / target stock gives a percentage and will be used for sorting (lowest percentage = highest priority) -->
@@ -42,23 +48,49 @@
         <do_if value="$buyOffers.{$buyCounter}.ware.iscargo == true">
           <!--Divide by 0 safeguards-->
 
-          <do_if value="$stationLogisticsData.$station.cargo.{$buyOffers.{$buyCounter}.ware}.target == 0">
-            <!--
+          <!--<do_if value="$stationLogisticsData.$station.cargo.{$buyOffers.{$buyCounter}.ware}.target == 0">
+            -->
+          <!--
                 This really shouldn't happen if there's a buy offer outstanding for the good, but some mods (tradestations, warehouses) may get creative and create
                 offers without altering target levels. In this rare case, treat the buy offer as though it is the target stock level. Priority will be lowest (1).
             -->
+          <!--
             <set_value name="$resourceTable.{$buyOffers.{$buyCounter}.ware}" exact="1f"/>
+            <debug_to_file name="'apsl.log'" text="'INFO! apsl.Station.DetermineResourcePriorities Edge Case - target is 0. Station %1 ware %2 priority 1'.[$stationLogisticsData.$station.name, $buyOffers.{$buyCounter}.ware.name]" chance="$debugChance"/>
           </do_if>
           <do_elseif value="$buyOffers.{$buyCounter}.amount == 0">
-            <!--Another rare case would be a buy offer amount that is zero. This might happen if reservations for the full amount are held (but I'm likely to cap them at 90% anyways)-->
+            -->
+          <!--Since I'm no longer doing division and just using stock level I don't think I need this anymore.-->
+          <!--
+            
+            -->
+          <!--Another rare case would be a buy offer amount that is zero. This might happen if reservations for the full amount are held (but I'm likely to cap them at 90% anyways)-->
+          <!--
+            <debug_to_file name="'apsl.log'" text="'INFO! apsl.Station.DetermineResourcePriorities Edge Case - buy offer is 0. Station %1 ware %2 priority 1'.[$stationLogisticsData.$station.name, $buyOffers.{$buyCounter}.ware.name]" chance="$debugChance"/>
             <set_value name="$resourceTable.{$buyOffers.{$buyCounter}.ware}" exact="1f"/>
+          </do_elseif>-->
+          <!--<do_else>-->
+          <!-- Normal case -->
+          <!--<set_value name="$priority" exact="($stationLogisticsData.$station.cargo.{$buyOffers.{$buyCounter}.ware}.target - $buyOffers.{$buyCounter}.amount)f / $stationLogisticsData.$station.cargo.{$buyOffers.{$buyCounter}.ware}.target"/>-->
+          <!--TODO: Don't actually use stock level. I want the actual amount curently held to divide by the amount wanted-->
+          <set_value name="$priority" exact="1f"/>
+          
+          <do_if value="$stationLogisticsData.$station.cargo.{$buyOffers.{$buyCounter}.ware} == 0">
+            <set_value name="$priority" exact="0f"/>
+          </do_if>
+          <do_elseif value="$stationLogisticsData.$station.cargo.{$buyOffers.{$buyCounter}.ware}.target == 0">
+            <set_value name="$priority" exact="1f"/>
           </do_elseif>
           <do_else>
-            <!-- Normal case -->
-            <!--<set_value name="$priority" exact="($stationLogisticsData.$station.cargo.{$buyOffers.{$buyCounter}.ware}.target - $buyOffers.{$buyCounter}.amount)f / $stationLogisticsData.$station.cargo.{$buyOffers.{$buyCounter}.ware}.target"/>-->
-            <set_value name="$priority" exact="(1)f - $buyOffers.{$buyCounter}.stocklevel"/>
-            <set_value name="$resourceTable.{$buyOffers.{$buyCounter}.ware}" exact="$priority"/>            
+            <set_value name="$priority" exact="($stationLogisticsData.$station.cargo.{$buyOffers.{$buyCounter}.ware}.count)f / $stationLogisticsData.$station.cargo.{$buyOffers.{$buyCounter}.ware}.target"/>
+            <debug_to_file name="'apsl.log'" text="'INFO! apsl.Station.DetermineResourcePriorities Station %1 ware %2 priority calc - cargo amount (%3) / cargo target (%4) = priority %5'.[$stationLogisticsData.$station.name, $buyOffers.{$buyCounter}.ware.name, $stationLogisticsData.$station.cargo.{$buyOffers.{$buyCounter}.ware}.count, $stationLogisticsData.$station.cargo.{$buyOffers.{$buyCounter}.ware}.target, $priority]" chance="$debugChance"/>
           </do_else>
+          
+          <!--<set_value name="$priority" exact="(1)f - $buyOffers.{$buyCounter}.stocklevel"/>-->
+          <set_value name="$resourceTable.{$buyOffers.{$buyCounter}.ware}" exact="$priority"/>
+          <debug_to_file name="'apsl.log'" text="'INFO! apsl.Station.DetermineResourcePriorities Station %1 ware %2 priority %3'.[$stationLogisticsData.$station.name, $buyOffers.{$buyCounter}.ware.name, $priority]" chance="$debugChance"/>                   
+          
+          <!--</do_else>-->
         </do_if>
       </do_all>
 
@@ -71,12 +103,12 @@
       </do_else>
 
       <set_value name="$successResult" exact="true"/>
-      
+
       <return>
         <retval name="wasSuccessful" value="$successResult"/>
         <retval name="priorityResult" value="$resourceTable"/>
       </return>
-      
+
     </actions>
   </attention>
 </aiscript>

@@ -46,7 +46,7 @@
       
       <do_all exact="$stationList.count" counter="$counter">
         <!--Only try to reserve at stations that are within the managers skill range-->
-        <do_if value="$stationList.{$counter}.jumpDistance le $skillDistance">
+        <do_if value="$stationList.{$counter}.$jumpDistance le $skillDistance">
           <run_script name="'apsl.lib.ReserveSingleStationWares'">
             <param name="reserverStation" value="$stationLogisticsData.$station"/>
             <param name="reverveeStationData" value="$stationList.{$counter}"/>
