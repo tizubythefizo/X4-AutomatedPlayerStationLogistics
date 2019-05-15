@@ -1,0 +1,80 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<aiscript name="apsl.lib.QuicksortTradesByUnitPrice" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="aiscripts.xsd" version="1">
+  <params>
+    <param name="sortList" comment="REQUIRED! The list to quicksort"/>
+  </params>
+  <init>
+    <set_value name="$max" exact="300"/>
+  </init>
+  <attention min="unknown">
+    <actions>
+      <!--Parameter Validation-->
+      <do_if value="$sortList? == false or typeof $sortList != datatype.list or $sortList.count lt 2">
+        <debug_to_file name="'apsl.station_eval.log'" text="'ERROR! apsl.lib.QuicksortTradesByUnitPrice parameter sortList was either nonexistant, not a list, or did not have enough elements to sort'"/>
+        <return />
+      </do_if>
+
+      <!--This method has no debug stuff, check results in calling script. Need to keep this as lean as possible.-->
+      <set_value name="$i" exact="1"/>
+      <set_value name="$pivot" exact="null"/>
+      <create_list name="$beginning" exact="$max"/>
+      <create_list name="$ending" exact="$max"/>
+      <!--<set_value name="$beginning" exact="[$max]"/>-->
+      <!--<set_value name="$ending" exact="[$max]"/>-->
+
+      <set_value name="$beginning.{1}" exact="1"/>
+      <!--Add a plus one to prime it for use (algorithm adapted from 0 based array language)-->
+      <set_value name="$ending.{1}" exact="$sortList.count + 1"/>
+
+      <do_while value="$i ge 1">
+
+        <set_value name="$left" exact="$beginning.{$i}"/>
+        <set_value name="$right" exact="$ending.{$i} - 1"/>
+
+        <do_if value="$left lt $right">
+
+          <set_value name="$pivot" exact="$sortList.{$left}"/>
+
+          <do_while value="$left lt $right">
+
+            <do_while value="$sortList.{$right}.unitprice ge $pivot.unitprice and $left lt $right">
+              <set_value name="$right" exact="1" operation="subtract"/>
+            </do_while>
+
+            <do_if value="$left lt $right">
+              <set_value name="$sortList.{$left}" exact="$sortList.{$right}"/>
+              <set_value name="$left" exact="1" operation="add"/>
+            </do_if>
+
+            <do_while value="$sortList.{$left}.unitprice le $pivot.unitprice and $left lt $right">
+              <set_value name="$left" exact="1" operation="add"/>
+            </do_while>
+            
+            <do_if value="$left lt $right">
+              <set_value name="$sortList.{$right}" exact="$sortList.{$left}"/>
+              <set_value name="$right" exact="1" operation="subtract"/>
+            </do_if>
+          </do_while>
+
+          <set_value name="$sortList.{$left}" exact="$pivot"/>
+          <set_value name="$beginning.{$i + 1}" exact="$left + 1"/>
+          <set_value name="$ending.{$i + 1}" exact="$ending.{$i}"/>
+          <set_value name="$ending.{$i}" exact="$left"/>
+          <set_value name="$i" exact="1" operation="add"/>
+
+          <do_if value="($ending.{$i} - $beginning.{$i}) gt ($ending.{$i - 1} - $beginning.{$i - 1})">
+            <set_value name="$swap" exact="$beginning.{$i}"/>
+            <set_value name="$beginning.{$i}" exact="$beginning.{$i - 1}"/>
+            <set_value name="$beginning.{$i - 1}" exact="$swap"/>
+            <set_value name="$swap" exact="$ending.{$i}"/>
+            <set_value name="$ending.{$i}" exact="$ending.{$i - 1}"/>
+            <set_value name="$ending.{$i - 1}" exact="$swap"/>
+          </do_if>          
+        </do_if>
+        <do_else>
+          <set_value name="$i" exact="1" operation="subtract"/>
+        </do_else>
+      </do_while>      
+    </actions>
+  </attention>
+</aiscript>

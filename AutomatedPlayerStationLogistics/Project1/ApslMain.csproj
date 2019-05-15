@@ -55,19 +55,26 @@
       <SubType>Designer</SubType>
     </Content>
     <Content Include="APSL\aiscripts\apsl.lib.EvaluateResourceCriticality.xml" />
+    <Content Include="APSL\aiscripts\apsl.lib.FindBestDealForWares.xml" />
     <Content Include="APSL\aiscripts\apsl.lib.GetHighwayPoints.xml" />
     <Content Include="APSL\aiscripts\apsl.lib.GetStationData.xml" />
     <Content Include="APSL\aiscripts\apsl.lib.ProcessAllStationsInRange.xml" />
     <Content Include="APSL\aiscripts\apsl.lib.ProcessNewInRangeStation.xml" />
+    <Content Include="APSL\aiscripts\apsl.lib.PruneInterestedStations.xml" />
+    <Content Include="APSL\aiscripts\apsl.lib.QuicksortTradesByUnitPrice.xml" />
     <Content Include="APSL\aiscripts\apsl.lib.ReserveSingleStationWares.xml" />
     <Content Include="APSL\aiscripts\apsl.lib.ReserveStationWares.xml">
       <SubType>Designer</SubType>
     </Content>
     <Content Include="APSL\aiscripts\apsl.lib.PruneResourceData.xml" />
+    <Content Include="APSL\aiscripts\apsl.lib.ShipTraderHandleExistingCargo.xml" />
     <Content Include="APSL\aiscripts\apsl.lib.StationShutdown.xml">
       <SubType>Designer</SubType>
     </Content>
     <Content Include="APSL\aiscripts\apsl.lib.SyncReservations.xml" />
+    <Content Include="APSL\aiscripts\apsl.order.StationTrader.xml">
+      <SubType>Designer</SubType>
+    </Content>
     <Content Include="APSL\aiscripts\apsl.Player.Interaction.StationLogisticsShipDormancy.xml" />
     <Content Include="APSL\aiscripts\apsl.Player.Interaction.StationLogisticsCargoDroneDormancy.xml" />
     <Content Include="APSL\aiscripts\apsl.Player.Interaction.StationLogisticsOnline.xml" />
@@ -75,6 +82,7 @@
     <Content Include="APSL\aiscripts\apsl.Station.LogisticsManager.xml">
       <SubType>Designer</SubType>
     </Content>
+    <Content Include="APSL\aiscripts\lib.request.orders.xml" />
     <Content Include="APSL\aiscripts\trade.station.xml" />
     <Content Include="APSL\content.xml" />
     <Content Include="APSL\md\ApslStartup.xml" />

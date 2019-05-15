@@ -42,13 +42,13 @@
 
       <do_if value="$buyOffers == null">
         <find_buy_offer buyer="$station" excludeempty="false" multiple="true" result="$buyOffers"/>
-      </do_if>
+      </do_if>      
       
       <!--First determine resource priorities (lib function)-->
       <run_script name="'apsl.lib.DetermineResourcePriorities'">
         <param name="stationLogisticsData" value="$stationLogisticsData"/>
         <param name="buyOffers" value="$buyOffers"/>
-      </run_script>
+      </run_script>     
       
       <!--Next, refresh current reservation amounts for wares. This shouldn't fall out of sync, since <get_ware_reservation> is a thing.-->
       <!--Yep, need to keep track myself. Get ware reservation only works for stations where the reservation is, apparently.-->

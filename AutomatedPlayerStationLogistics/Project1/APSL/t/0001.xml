@@ -6,5 +6,8 @@
   <t id="3">$STATION$ logistics manager is now online. If there are cargo drones and/or ships assigned to station, evaluations will begin</t>
   <t id="4">$STATION$ has no trade ships, evaluations stopping. Will evaluate in-zone stations if station has cargo drones.</t>
   <t id="5">$STATION$ no longer has cargo drones. Cargo drone logistics are now impossible.</t>
+  <t id="100">APSL Station Trader</t>
+  <t id="101">Transfers wares from other player stations, buys goods as needed, sells station produced goods, autotrades, or refreshes trades (in that order)</t>
+  <t id="150">This order is for ships assigned to stations only.</t>
 </page>
 </language>

@@ -1,0 +1,56 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<aiscript name="apsl.lib.PruneInterestedStations" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="aiscripts.xsd" version="1">
+  <params>
+    <param name="stationName" comment="REQUIRED. The name of the entity doing the pruning"/>
+    <param name="interestedStationList" comment="REQUIRED! The list of stations to prune"/>
+  </params>
+  <attention min="unknown">
+    <actions>
+      <set_value name="$debugChance" exact="0"/>
+      <set_value name="$successResult" exact="false"/>
+      
+      <!--Parameter Validation-->
+      <do_if value="$stationName? == false or (typeof $stationName).isstring == false">
+        <debug_to_file name="'apsl.station_eval.log'" text="'ERROR! apsl.lib.PruneInterestedStations parameter stationName either does not exist or was not a string!'"/>
+        <return>
+          <retval name="wasSuccessful" value="$successResult"/>
+        </return>
+      </do_if>
+      <do_if value="$interestedStationList? == false or typeof $interestedStationList != datatype.list">
+        <debug_to_file name="'apsl.station_eval.log'" text="'ERROR! apsl.lib.PruneInterestedStations parameter interestedStationList either does not exist or was not a list!'"/>
+        <return>
+          <retval name="wasSuccessful" value="$successResult"/>
+        </return>
+      </do_if>
+
+      <do_if value="global.$apslData.$debug == true">
+        <set_value name="$debugChance" exact="100"/>
+      </do_if>
+      
+      <!--Main Logic-->
+      <set_value name="$pruneList" exact="[]"/>
+
+      <debug_to_file name="'apsl.station_eval.log'" text="'INFO! apsl.Station.PruneInterestedStations %1 checking for stations that need pruning'.[$stationName]" chance="$debugChance"/>
+      <do_all exact="$interestedStationList.count" counter="$buildListCounter">
+        <do_if value="$interestedStationList.{$buildListCounter}.$station? == false or $interestedStationList.{$buildListCounter}.$station.iswreck == true or $interestedStationList.{$buildListCounter}.$station.isoperational == false">
+          <!--Found one, marking for deletion-->
+          <append_to_list name="$pruneList" exact="$interestedStationList.{$buildListCounter}"/>
+          <debug_to_file name="'apsl.station_eval.log'" text="'INFO! apsl.Station.PruneInterestedStations %1 found dead station...'.[$stationName]" chance="$debugChance"/>
+        </do_if>
+      </do_all>
+
+      <do_if value="$pruneList.count gt 0">
+        <do_all exact="$pruneList" counter="$pruneCounter">
+          <debug_to_file name="'apsl.station_eval.log'" text="'INFO! apsl.Station.PruneInterestedStations %1 dead station is being pruned'.[$stationName]" chance="$debugChance"/>
+          <remove_from_list name="$interestedStationList" exact="$pruneList.{$pruneCounter}"/>
+        </do_all>
+      </do_if>
+
+      <set_value name="$successResult" exact="true"/>
+
+      <return>
+        <retval name="wasSuccessful" value="$successResult"/>
+      </return>      
+    </actions>
+  </attention>
+</aiscript>

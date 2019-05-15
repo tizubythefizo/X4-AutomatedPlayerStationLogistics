@@ -1,0 +1,189 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<aiscript name="apsl.order.StationTrader" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="aiscripts.xsd" version="1">
+  <order id="ApslStationTraderOrder" name="{98776,100}" description="{98776,100}" category="internal" infinite="true">
+    <params>
+
+    </params>
+  </order>
+  <interrupts>
+    <!--Think about putting some library actions here, such as releasing reserved wares so it's not part of the action flow-->
+    <handler ref="SectorChangeHandler"/>
+    <handler ref="AttackHandler" />
+    <handler ref="MissileLockHandler" />
+    <handler ref="ScannedHandler" />
+    <handler ref="InspectedHandler"/>
+    <handler ref="FoundAbandonedHandler"/>
+    <handler ref="ResupplyHandler" />
+    <handler ref="JobRemoveRequestHandler" />
+    <handler ref="TargetInvalidHandler"/>
+    <handler comment="Signal to cancel all orders and abort current run">
+      <conditions>
+        <event_object_signalled object="this.assignedcontrolled" param="cancelAllOrders"/>
+      </conditions>
+      <actions>
+        <do_if value="this.assignedcontrolled.orders.count gt 0">
+          <cancel_all_orders object="this.object"/>
+        </do_if>
+
+        <!--Hopefully this will abort everything and then restart the default order-->
+        <abort_scripts entity="this"/>
+      </actions>
+    </handler>
+  </interrupts>
+  <init>
+    <set_value name="$debugChance" exact="0"/>
+
+    <do_if value="global.$apslData.$debug == true">
+      <set_value name="$debugChance" exact="100"/>
+    </do_if>
+
+    <set_order_syncpoint_reached order="this.ship.order"/>
+
+    <set_command_action commandaction="commandaction.searchingtrades" />
+    <set_command command="command.trade" param="this.ship.commander" />
+    <!--<debug_to_file name="'apsl.ship_trader.log'" text="'Commander test - this (%1) assignedcontrolled (%2) commander is (%3)'.[this.name, this.assignedcontrolled.class, this.assignedcontrolled.commander.class]" />-->
+    <!--this is the pilot, this.assignedcontrolled is the ship, and this.assignedcontrolled.commander is the station the ship is assigned to. this.object is also the ship. this.ship is also (obviously) the ship-->
+
+    <set_value name="$cargoFloorPercentage" exact="0.1f"/>
+    <set_value name="$cargoCeilingPercentage" exact="0.9f"/>
+    <set_value name="$cargoFloorAmount" exact="(this.ship.cargo.capacity.universal * $cargoFloorPercentage)i"/>
+    <set_value name="$cargoCeilingAmount" exact="(this.ship.cargo.capacity.universal * $cargoCeilingPercentage)i"/>
+  </init>
+  <attention min="unknown">
+    <actions>
+      <!--TODO: Play around with fleets. Any subordinates in a fleet that are traders, we want to treat things as one giant cargo hold -->
+      <!--
+        Need to figure out how to manage the fleet. The fleet shouldn't begin executing the next trade until all ships that are currently trading have finished, so there needs
+        to be some kind of mechanism for all the ships to signal when they're ready and such. This may not be feasible for a v1, depending on how fleets behave vanilla. I'll have
+        to test that out in game (what happens when assigning a fleet to a station).
+      -->
+      <debug_to_file name="'apsl.ship_trader.log'" text="'APSL StationTrader default order actions iteration starting for %1'.[this.assignedcontrolled.name]" chance="$debugChance"/>
+      <!--Get station data...-->
+      <set_value name="$stationLogisticsData" exact="null"/>
+
+      <run_script name="'apsl.lib.GetStationData'">
+        <param name="stationId" value="this.ship.commander.idcode"/>
+        <save_retval name="stationData" variable="$stationLogisticsData"/>
+      </run_script>
+
+      <do_if value="$stationLogisticsData == null">
+        <debug_to_file name="'apsl.ship_trader.log'" text="'APSL StationTrader WARNING! %1 could not retrieve data for station %2! This ususlaly means no manager was ever assigned to the station!'.[this.assignedcontrolled.name, this.assignedcontrolled.commander.name]" />
+        <!--TODO: Notify player of the issue-->
+        <wait exact="2min" />
+        <return />
+      </do_if>
+
+      <!--Station is inactive or has no manager, wait and check again-->
+      <do_if value="this.ship.commander.tradenpc == null or $stationLogisticsData.$isLogisticsActive == false">
+        <debug_to_file name="'apsl.ship_trader.log'" text="'APSL StationTrader - %1 - home Station has no manager or is not active!'.[this.ship.name]" chance="$debugChance"/>
+        <wait exact="10s" />
+        <return />
+      </do_if>
+
+      <!--If station is busy, wait and try again-->
+      <do_if value="$stationLogisticsData.$isEvaluating == true or $stationLogisticsData.$shipJobData.$isShipTakingJob == true">
+        <debug_to_file name="'apsl.ship_trader.log'" text="'APSL StationTrader - %1 - home Station is busy or ship is already taking job, waiting and trying again...'.[this.ship.name]" chance="$debugChance"/>
+        <wait exact="100ms" />
+        <return />
+      </do_if>
+
+      <!--Ok, we're good to begin work, let station know-->
+      <set_value name="$stationLogisticsData.$shipJobData.$isShipTakingJob" exact="true"/>
+
+      <!--
+          Note: Because I want to do multiple...transactions per run, it may be beneficial to just up and build a table of data that contains all the info about a given trade (buy and sell info in one structure).
+          Then I can verify the trades are still good/needed right before creating the orders (since there may be breaking actions in between).
+      -->
+
+      <!--Determine clusters in range-->
+
+      <set_value name="$shipRange" exact="$stationLogisticsData.$manager.skill.management / 3"/>
+      <debug_to_file name="'apsl.ship_trader.log'" text="'APSL StationTrader - %1 Ship range is %2 based on station manager skill (%3)'.[this.ship.name, $shipRange, $stationLogisticsData.$manager.skill.management]" chance="$debugChance"/>
+
+      <set_value name="$inRangeClusters" exact="[]"/>
+      <set_value name="$sortedClusters" exact="$stationLogisticsData.$clustersInRange.keys.sorted"/>
+      <!--Loop through the stations clusters and get the ones that are in range of the managers skill-->
+      <do_all exact="$sortedClusters.count" counter="$clusterCount">
+        <do_if value="$stationLogisticsData.$clustersInRange.{$sortedClusters.{$clusterCount}} le $shipRange">
+          <append_to_list name="$inRangeClusters" exact="$sortedClusters.{$clusterCount}"/>
+        </do_if>
+      </do_all>
+      
+
+      <do_if value="$inRangeClusters.count lt 1" >
+        <debug_to_file name="'apsl.ship_trader.log'" text="'APSL StationTrader ERROR! %1 had no clusters in range!'.[this.ship.name, this.ship.commander.name]" />
+      </do_if>
+
+      <!--If there's anything in the cargo hold, try to get rid of it -->
+      <set_value name="$currentCargo" exact="this.ship.cargo.list.clone"/>
+
+      <!--If there are wares, call the script to handle existing wares.-->
+      <do_if value="$currentCargo != null and $currentCargo.count gt 0">
+        <run_script name="'apsl.lib.ShipTraderHandleExistingCargo'">
+          <param name="ship" value="this.ship"/>
+          <param name="stationLogisticsData" value="$stationLogisticsData"/>
+          <param name="existingCargo" value="$currentCargo"/>
+          <param name="inRangeClusters" value="$inRangeClusters"/>
+          <save_retval name="wasSuccessfull" variable="$existingSuccessResult"/>
+        </run_script>
+
+        <set_value name="$stationLogisticsData.$shipJobData.$isShipTakingJob" exact="false"/>   
+        <wait exact="5ms" />
+        <return />
+      </do_if>
+
+      <set_value name="$sortedMatchedOffers" exact="[]"/>
+
+      <do_if value="this.ship.commander.tradenpc != null and $stationLogisticsData.$isLogisticsActive == true">
+
+        <!-- Try to transfer wares, check that there's cargo space. available money is irrelevant. -->
+        <!--Capacity - current free space = current filled space. If filled space is less than the ceiling, keep going-->
+        <!--Transfers-->
+        <do_if value="(this.shuip.capacity.universal - this.ship.free.universal) lt $cargoCeilingAmount">
+          
+        </do_if>
+
+        <!--Buy for station-->
+        <do_if value="(this.shuip.capacity.universal - this.ship.free.universal) lt $cargoCeilingAmount">
+
+        </do_if>
+
+        <!--Sell goods for station-->
+        <do_if value="(this.shuip.capacity.universal - this.ship.free.universal) lt $cargoCeilingAmount">
+
+        </do_if>
+
+        <!--General Autotrader-->
+        <do_if value="(this.shuip.capacity.universal - this.ship.free.universal) lt $cargoCeilingAmount">
+
+        </do_if>
+
+      </do_if>
+      <do_else>
+        <!--only do refreshing of trades-->
+      </do_else>
+
+      <!--If offers were generated, will need to include_interrup_actions and parse them into a proper order. If either the buy/sell have been invalidated both will need to be cancelled -->
+      <do_if value="$sortedMatchedOffers.count gt 0">
+        
+      </do_if>
+      <do_else>
+        <!--Do refreshing of trades-->
+      </do_else>
+
+      <set_value name="$stationLogisticsData.$shipJobData.$isShipTakingJob" exact="false"/>
+      <wait exact="10ms" />
+    </actions>
+  </attention>
+  <on_abort>
+    <!--Check to see if the lock needs to be released.-->
+    <do_if value="$stationLogisticsData != null">
+      <do_if value="$stationLogisticsData.$shipJobData.$isShipTakingJob == true and $stationLogisticsData.$shipJobData.$ship == this.ship">
+        <!--This is the ship that has the lock, clear the lock data-->
+        <set_value name="$stationLogisticsData.$shipJobData.$ship" exact="null"/>
+        <set_value name="$stationLogisticsData.$shipJobData.$time" exact="null"/>
+        <set_value name="$stationLogisticsData.$shipJobData.$isShipTakingJob" exact="false"/>
+      </do_if>
+    </do_if>
+  </on_abort>
+</aiscript>

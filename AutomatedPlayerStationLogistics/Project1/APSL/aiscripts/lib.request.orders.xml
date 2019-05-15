@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<diff xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <add sel="//attention/actions/do_else/do_elseif[@value='$commander.isclass.station']/do_elseif[@value='$assignment == assignment.build']" pos="after">
+    <do_elseif value="this.owner == faction.player and $assignment == assignment.trade">
+      <debug_to_file name="'apsl.ship_trader.log'" text="'INFO lib.request.orders - Object %1 about to create default order ApslStationTraderOrder'.[$object.name]"/>
+      <create_order object="$object" id="'ApslStationTraderOrder'" default="true">
+
+      </create_order>
+    </do_elseif>
+  </add>
+</diff>

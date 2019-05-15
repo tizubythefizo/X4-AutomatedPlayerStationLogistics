@@ -1,0 +1,183 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<aiscript name="apsl.lib.ShipTraderHandleExistingCargo" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="aiscripts.xsd" version="1">
+  <params>
+    <param name="ship" comment=""/>
+    <param name="stationLogisticsData" comment=""/>
+    <param name="existingCargo" comment=""/>
+    <param name="inRangeClusters" comment=""/>
+  </params>
+  <init>
+    <set_value name="$debugChance" exact="0"/>
+
+    <do_if value="global.$apslData.$debug == true">
+      <set_value name="$debugChance" exact="100"/>
+    </do_if>
+  </init>
+  <actions>    
+    <set_value name="$successResult" exact="false"/>
+
+    <!--Parameter Validation-->
+    <do_if value="$ship.exists == false or $ship.isoperational == false or $ship.isclass.ship == false">
+      <debug_to_file name="'apsl.ship_trader.log'" text="'apsl.lib.ShipTraderHandleExistingCargo ERROR! parameter ship either does not exist or was not a ship!'" />
+
+      <return>
+        <retval name="wasSuccessful" value="$successResult"/>
+      </return>
+    </do_if>
+    <do_if value="$stationLogisticsData? == false or typeof $stationLogisticsData != datatype.table">
+      <debug_to_file name="'apsl.ship_trader.log'" text="'apsl.lib.ShipTraderHandleExistingCargo ERROR! parameter stationLogisticsData either does not exist or was not a table!'" />
+
+      <return>
+        <retval name="wasSuccessful" value="$successResult"/>
+      </return>
+    </do_if>
+    <do_if value="$existingCargo? == false or typeof $existingCargo != datatype.list or $existingCargo.count lt 1">
+      <debug_to_file name="'apsl.ship_trader.log'" text="'apsl.lib.ShipTraderHandleExistingCargo ERROR! parameter existingCargo either does not exist, was not a list, or was an empty list!'" />
+
+      <return>
+        <retval name="wasSuccessful" value="$successResult"/>
+      </return>
+    </do_if>
+    <do_if value="$inRangeClusters? == false or typeof $inRangeClusters != datatype.list or $inRangeClusters.count lt 1">
+      <debug_to_file name="'apsl.ship_trader.log'" text="'apsl.lib.ShipTraderHandleExistingCargo ERROR! parameter inRangeClusters either does not exist, was not a list, or was an empty list!'" />
+
+      <return>
+        <retval name="wasSuccessful" value="$successResult"/>
+      </return>
+    </do_if>
+   
+    <!--Main Logic!-->
+    <debug_to_file name="'apsl.ship_trader.log'" text="'apsl.lib.ShipTraderHandleExistingCargo - %1 has existing cargo (%2 different wares). Will attempt to sell if home station does not need them.'.[this.ship.name, $existingCargo.count]" chance="$debugChance"/>
+
+    <set_value name="$existingCargoSells" exact="[]"/>
+    <set_value name="$existingCargoTransfers" exact="[]"/>
+    <find_buy_offer buyer="$stationLogisticsData.$station" wares="$existingCargo" multiple="true" result="$homeBuyOffers" />
+    <debug_to_file name="'apsl.ship_trader.log'" text="'apsl.lib.ShipTraderHandleExistingCargo - INFO - %1 checking home buy offers for wares %1 - found %2'.[$ship.name, $homeBuyOffers.count]" chance="$debugChance"/>
+
+    <!--If there are any buy offers at home station for any of the existing cargo goods, slap 'em in the $existingCargoTransfers list, otherwise $existingCargoSells list-->
+    <do_if value="$homeBuyOffers != null and $homeBuyOffers.count gt 0">
+
+      <do_all exact="$existingCargo.count" counter="$existingCargoCounter">
+        <set_value name="$wasFound" exact="false"/>
+
+        <do_all exact="$homeBuyOffers.count" counter="$homeBuyOfferCounter">
+          <do_if value="$homeBuyOffers.{$homeBuyOfferCounter}.ware == $existingCargo.{$existingCargoCounter}">
+
+            <!--If the buy offer is enough for the amount on board...-->
+            <do_if value="$homeBuyOffers.{$homeBuyOfferCounter}.amount ge $ship.cargo.{$existingCargo.{$existingCargoCounter}}.count">
+              <append_to_list name="$existingCargoTransfers" exact="$homeBuyOffers.{$homeBuyOfferCounter}"/>
+              <debug_to_file name="'apsl.ship_trader.log'" text="'apsl.lib.ShipTraderHandleExistingCargo - INFO - %1 found ware for transfer - %2 - offer amount %3 ship cargo amount %4'.[$ship.name, $existingCargo.{$existingCargoCounter}, $homeBuyOffers.{$homeBuyOfferCounter}.amount, $ship.cargo.{$existingCargo.{$existingCargoCounter}}.count]" chance="$debugChance"/>
+              <set_value name="$wasFound" exact="true"/>              
+            </do_if>
+            
+            <break/>
+          </do_if>
+        </do_all>
+
+        <!--If found, transfer-->
+        <do_if value="$wasFound == false">
+          <append_to_list name="$existingCargoSells" exact="$existingCargo.{$existingCargoCounter}"/>
+          <debug_to_file name="'apsl.ship_trader.log'" text="'apsl.lib.ShipTraderHandleExistingCargo - INFO - %1 found ware for selling - %2'.[$ship.name, $existingCargo.{$existingCargoCounter}]" chance="$debugChance"/>
+        </do_if>
+
+        <remove_value name="$wasFound"/>
+        <remove_value name="$homeBuyOfferCounter"/>
+      </do_all>
+      <remove_value name="$existingCargoCounter"/>      
+    </do_if>
+    <do_else>
+      <!--These'll be normal sells-->
+      <set_value name="$existingCargoSells" exact="$existingCargo"/>
+      <debug_to_file name="'apsl.ship_trader.log'" text="'apsl.lib.ShipTraderHandleExistingCargo - INFO - %1 all existing wares being set for selling '.[$ship.name]" chance="$debugChance"/>
+    </do_else>    
+
+    <set_value name="$transferOrders" exact="[]"/>
+
+    <!--If there are transfers, queue them first. Should be superseded by sells so the transfers happen last.-->
+    <do_if value="$existingCargoTransfers.count gt 0">
+
+      <debug_to_file name="'apsl.ship_trader.log'" text="'apsl.lib.ShipTraderHandleExistingCargo - INFO - %1 Found %2 wares for transfer - %3'.[this.ship.name, $existingCargoTransfers.count, $existingCargoTransfers]" chance="$debugChance"/>
+      <do_all exact="$existingCargoTransfers.count" counter="$existingCargoTransfersCounter">        
+        <set_value name="$buyOffer" exact="$existingCargoTransfers.{$existingCargoTransfersCounter}"/>
+
+        <!--Create trade order for transfers!-->
+        <create_trade_order object="$ship" tradeoffer="$buyOffer" amount="$ship.cargo.{$buyOffer.ware}.count" name="$buyOrderResult" immediate="true"/>
+        <debug_to_file name="'apsl.ship_trader.log'" text="'apsl.lib.ShipTraderHandleExistingCargo - INFO - %1 Creating transfer order for %2 - amount %3'.[$ship.name, $buyOffer.ware, $ship.cargo.{$buyOffer.ware}.count]" chance="$debugChance"/>
+      </do_all>
+    </do_if>
+
+    <!--If there are sells, find best deals for them and sell them-->
+    <do_if value="$existingCargoSells.count gt 0">
+      <debug_to_file name="'apsl.ship_trader.log'" text="'apsl.lib.ShipTraderHandleExistingCargo - INFO - %1 Found %2 wares for selling - %3'.[this.ship.name, $existingCargoSells.count, $existingCargoSells]" chance="$debugChance"/>
+      <!--Method that takes a list of wares, and for each ware finds the sell/buy/both offers and sorts them. Should return a table where ware is key, has a list of buy offers and sell offers-->
+
+      <run_script name="'apsl.lib.FindBestDealForWares'">
+        <param name="waresList" value="$existingCargoSells"/>
+        <param name="findSpace" value="$inRangeClusters"/>
+        <param name="isFindBuyOffers" value="true"/>
+        <param name="isFindSellOffers" value="false"/>
+        <param name="logFileName" value="'apsl.ship_trader.log'"/>
+        <save_retval name="wareOfferTable" variable="$wareOffers"/>
+      </run_script>
+
+      <debug_to_file name="'apsl.ship_trader.log'" text="'apsl.lib.ShipTraderHandleExistingCargo - INFO - %1 Result from finding best offers is %2'.[this.ship.name, $wareOffers]" chance="$debugChance"/>
+
+      <!--Find the best buy offers (reverse the list, since we want to sell to them) for each ware if there are any and create trade order for it-->      
+      
+      <do_if value="$wareOffers != null and $wareOffers.keys.count gt 0">
+        <set_value name="$wareKeys" exact="$wareOffers.keys.list.clone"/>
+
+        <debug_to_file name="'apsl.ship_trader.log'" text="'apsl.lib.ShipTraderHandleExistingCargo - INFO - %1 Found offers for %2 wares'.[this.ship.name, $wareKeys.count]" chance="$debugChance"/>
+        <do_all exact="$wareKeys.count" counter="$wareOffersCounter">
+          
+          <do_if value="$wareOffers.{$wareKeys.{$wareOffersCounter}}.$buyOffers != null and $wareOffers.{$wareKeys.{$wareOffersCounter}}.$buyOffers.count gt 0">            
+            <debug_to_file name="'apsl.ship_trader.log'" text="'apsl.lib.ShipTraderHandleExistingCargo - INFO - %1 Finding best offer for %2'.[this.ship.name, $wareKeys.{$wareOffersCounter}]" chance="$debugChance"/>
+            <set_value name="$offers" exact="$wareOffers.{$wareKeys.{$wareOffersCounter}}.$buyOffers"/>
+            <set_value name="$cargoAmount" exact="$ship.cargo.{$wareKeys.{$wareOffersCounter}}.count"/>
+            <!--Find the best offer that has the right amount. If it's unavailable, try refreshing it once. If nogo, move to the next (in reverse order)-->
+            <do_all exact="$offers.count" counter="$sellWaresBuyOfferCounter" reverse="true">
+
+              <!--Check amount first, if there's not enough we can just skip to the next one.-->
+              <debug_to_file name="'apsl.ship_trader.log'" text="'apsl.lib.ShipTraderHandleExistingCargo - INFO - %1 Checking offer for %2 - offer amount %3 ship holding %4'.[this.ship.name, $offers.{$sellWaresBuyOfferCounter}.ware.name, $offers.{$sellWaresBuyOfferCounter}.amount, $ship.cargo.{$offers.{$sellWaresBuyOfferCounter}.ware}.count]" chance="$debugChance"/>
+              <do_if value="$offers.{$sellWaresBuyOfferCounter}.amount ge $cargoAmount">
+                <set_value name="$buyOffer" exact="$offers.{$sellWaresBuyOfferCounter}"/>
+                
+                <!--Make sure the offer is still valid, since it could be invalidated by now-->
+                <do_if value="$buyOffer.available != true">
+
+                  <find_buy_offer wares="$buyOffer.ware" buyer="$buyOffer.buyer" result="$buyOffer"/>
+                  
+                  <!--If the amount is too low now, continue to the next-->
+                  <do_if value="$buyOffer.amount lt $cargoAmount">
+                    <debug_to_file name="'apsl.ship_trader.log'" text="'apsl.lib.ShipTraderHandleExistingCargo - INFO - %1 Buy offer has expired for ware %2, moving to next best offer'.[this.ship.name, $offers.{$sellWaresBuyOfferCounter}.ware]" chance="$debugChance"/>
+                    <continue />
+                  </do_if>
+                </do_if>
+                
+                <!--Got here meaning the buy offer is still good, create a buy order for it. Create the order-->
+                <create_trade_order object="$ship" tradeoffer="$buyOffer" amount="$cargoAmount" immediate="true"/>
+                <set_value name="$totalPrice" exact="$cargoAmount * $buyOffer.unitprice"/>
+                <debug_to_file name="'apsl.ship_trader.log'" text="'apsl.lib.ShipTraderHandleExistingCargo - INFO - %1 Buy order created for ware %2, unit price %3, amount %4,total price %5'.[this.ship.name, $buyOffer.ware, $buyOffer.unitprice.formatted.{'%s %Cr'}, $cargoAmount, $totalPrice.formatted.{'%s %Cr'}]" chance="$debugChance"/>
+                <break/>
+              </do_if>
+            </do_all>
+          </do_if>
+          <do_else>
+            <!-- No buy offers found for this ware, dump it?-->
+            <!-- TODO: Ask opinion on this, since silently dumping means $$$ loss. But if the wares aren't dumped, cargo hold will fill up and just notifying the player still allows them to miss it. Plus it's the station manager's call-->
+            <!--TODO: At least record it in the player logbook I suppose.-->
+            <debug_to_file name="'apsl.ship_trader.log'" text="'apsl.lib.ShipTraderHandleExistingCargo - INFO - %1 No offers found for ware %2, dumping wares.'.[this.ship.name, $wareKeys.{$wareOffersCounter}.name]" chance="$debugChance"/>
+            <remove_cargo object="$ship" ware="$wareKeys.{$wareOffersCounter}"/>
+          </do_else>
+        </do_all>
+        <set_value name="$successResult" exact="true"/>
+      </do_if>
+      
+    </do_if>
+    <return>
+      <retval name="wasSuccessfull" value="$successResult"/>
+    </return>
+  </actions>
+
+
+</aiscript>

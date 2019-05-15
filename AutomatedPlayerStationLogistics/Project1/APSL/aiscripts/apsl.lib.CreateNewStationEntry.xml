@@ -7,12 +7,12 @@
   <params>
     <param name="stationId" comment="REQUIRED! The id of the station to add" />
     <param name="stationEntity" comment="REQUIRED! The actual station entity"/>
-    <param name="stationManager" default="null" comment="Optional. The manager of the station" />
+    <param name="stationManager"  comment="REQUIRED!. The manager of the station" />
   </params>
   <attention min="unknown">
     <actions>
       <set_value name="$successResult" exact="false"/>
-      
+
       <!--Parameter Validation-->
       <do_if value="$stationId? == false or (typeof $stationId).isstring != true">
         <debug_to_file name="'apsl.station_eval.log'" text="'ERROR! apsl.lib.CalculateAllInRangeStationWares parameter stationId either does not exist or was not a string!'"/>
@@ -26,7 +26,13 @@
           <retval name="wasSuccessful" value="$operationSuccessful"/>
         </return>
       </do_if>
-      <!--Leaving off stationManager for now since I have no clue what its datatype is...TODO: Validate this bitch-->
+      <do_if value="$stationManager? == false or $stationManager.isclass.entity == false">
+        <debug_to_file name="'apsl.station_eval.log'" text="'ERROR! apsl.lib.stationEntity parameter stationManager either does not exist or was not an entity!'"/>
+
+        <return>
+          <retval name="wasSuccessful" value="$operationSuccessful"/>
+        </return>
+      </do_if>
 
       <do_if value="global.$apslData.$stationLogisticsData.{$stationId}? == false">
         <set_value name="global.$apslData.$stationLogisticsData.{'$' + $stationId}" exact="table[]"/>
@@ -38,27 +44,34 @@
           false once done being evaluated for the first time.
         -->
         <set_value name="global.$apslData.$stationLogisticsData.{'$' + $stationId}.$isEvaluating" exact="true"/>
+        
+        <!--ship job sync table-->
+        <set_value name="global.$apslData.$stationLogisticsData.{'$' + $stationId}.$shipJobData" exact="table[]" />
+        <set_value name="global.$apslData.$stationLogisticsData.{'$' + $stationId}.$shipJobData.$isShipTakingJob" exact="false"/>
+        <set_value name="global.$apslData.$stationLogisticsData.{'$' + $stationId}.$shipJobData.$ship" exact="null"/>
+        <set_value name="global.$apslData.$stationLogisticsData.{'$' + $stationId}.$shipJobData.$time" exact="null"/>
+
         <!--
             The logistics manager ai should set this to true once it's ready to go. It should be set to false when
             it's done (e.g. manager is unassigned).
         -->
         <set_value name="global.$apslData.$stationLogisticsData.{'$' + $stationId}.$isLogisticsActive" exact="false"/>
 
-        <do_if value="$stationManager != null">
-          <set_value name="global.$apslData.$stationLogisticsData.{'$' + $stationId}.$manager" exact="$stationManager"/>
-          <set_value name="global.$apslData.$stationLogisticsData.{'$' + $stationId}.$isLogisticsActive" exact="true"/>
-        </do_if>
-        
+
+        <set_value name="global.$apslData.$stationLogisticsData.{'$' + $stationId}.$manager" exact="$stationManager"/>
+        <set_value name="global.$apslData.$stationLogisticsData.{'$' + $stationId}.$isLogisticsActive" exact="true"/>
+
+
         <!--Set up the rest of the result data using empty tables/lists and whatnot-->
         <set_value name="global.$apslData.$stationLogisticsData.{'$' + $stationId}.$stationsInRange" exact="[]"/>
 
         <set_value name="global.$apslData.$stationLogisticsData.{'$' + $stationId}.$resourcePriorities" exact="[]"/>
         <set_value name="global.$apslData.$stationLogisticsData.{'$' + $stationId}.$resourceData" exact="table[]"/>
-        
+
         <!-- Get clusters in range, and then the actual sectors in range as well-->
         <find_cluster_in_range distances="$foundClusters" maxdistance="global.$apslData.$absoluteMaxStationRange" object="$stationEntity" multiple="true"/>
         <set_value name="global.$apslData.$stationLogisticsData.{'$' + $stationId}.$clustersInRange" exact="$foundClusters"/>
-        
+
         <!--Looks like I'll need to loop through these, since it doesn't like a list or table for space-->
         <set_value name="global.$apslData.$stationLogisticsData.{'$' + $stationId}.$sectorsInRange" exact="[]"/>
         <do_all exact="$foundClusters.keys.sorted.count" counter="$clusterCounter">
@@ -70,11 +83,11 @@
             </do_all>
           </do_if>
         </do_all>
-        
+
         <run_script name="'apsl.lib.ProcessAllStationsInRange'">
           <param name="stationLogisticsTable" value="global.$apslData.$stationLogisticsData.{'$' + $stationId}"/>
         </run_script>
-        
+
         <set_value name="$successResult" exact="true"/>
       </do_if>
 

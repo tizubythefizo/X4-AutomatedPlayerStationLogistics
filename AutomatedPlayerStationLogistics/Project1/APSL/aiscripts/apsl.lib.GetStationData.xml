@@ -5,8 +5,9 @@
   </params>  
   <attention min="unknown">
     <actions>
-
-      <set_value name="$result" exact="null" />
+      <set_value name="$debugChance" exact="0"/>
+      <set_value name="$successResult" exact="false"/>
+      <set_value name="$result" exact="null" />            
       
       <!--Parameter Validation-->
       <do_if value="$stationId? == false or (typeof $stationId).isstring != true">
@@ -15,15 +16,23 @@
           <retval name="wasSuccessful" value="$successResult"/>
         </return>
       </do_if>
+
+      <do_if value="global.$apslData.$debug == true">
+        <set_value name="$debugChance" exact="100"/>
+      </do_if>
       
       <!-- See if the key exists, and if it does then we'll modify result to return its logistics data-->
       <!-- 
         It is theoretically possible for the key to exist, but the value to be an empty table, so the
         caller will still need to perform some sanity checks aside from a null check.
       -->
-      <do_if value="global.$apslData.$stationLogistics.{'$' + $stationId}?" >
-        <set_value name="$result" exact="global.$apslData.$stationLogistics.{'$' + $stationId}"/>
+      <do_if value="global.$apslData.$stationLogisticsData.{'$' + $stationId}? == true" >
+        <debug_to_file name="'apsl.station_eval.log'" text="'INFO! apsl.Station.GetStationData Found data for %1'.[$stationId]" chance="$debugChance"/>
+        <set_value name="$result" exact="global.$apslData.$stationLogisticsData.{'$' + $stationId}"/>
       </do_if>
+      <do_else>
+        <debug_to_file name="'apsl.station_eval.log'" text="'WARNING! apsl.Station.GetStationData Data not found for %1'.[$stationId]"/>
+      </do_else>
       
       <return>
         <retval name="stationData" value="$result"/>

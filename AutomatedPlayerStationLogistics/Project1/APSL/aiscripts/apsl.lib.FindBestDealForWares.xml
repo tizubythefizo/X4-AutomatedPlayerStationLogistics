@@ -1,0 +1,172 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<aiscript name="apsl.lib.FindBestDealForWares" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="aiscripts.xsd" version="1">
+  <!--
+    Take a list of wares and a space (sector, cluster, or list of either) and will find and sort by unit price offers for each ware.
+    Buy, sell, or both. Default is both. Returns data as a table of wares, with $buyOffers and $sellOffers properties. Sorted low to high price
+  -->
+  <params>
+    <param name="waresList" comment="REQUIRED! The list of wares to find offers for"/>
+    <param name="findSpace" comment="REQUIRED! The space to search for offers. Sector, cluster, in a list."/>
+    <param name="isFindBuyOffers" default="true" comment="Optional. If this method should find buy offers"/>
+    <param name="isFindSellOffers" default="true" comment="Optional. If this method should find sell offers"/>
+    <param name="logFileName" default="'apsl.ship_trader.log'" comment="Optional. Log file name for logging purposes."/>
+  </params>
+  <init>
+    <set_value name="$debugChance" exact="0"/>
+
+    <do_if value="global.$apslData.$debug == true">
+      <set_value name="$debugChance" exact="100"/>
+    </do_if>
+
+    <set_value name="$optimizedLimit" exact="10"/>
+  </init>
+  <attention min="unknown">
+    <actions>
+      <set_value name="$successResult" exact="false"/>
+
+      <!--Parameter validation-->
+      <do_if value="$waresList? == false or typeof $waresList != datatype.list or $waresList.count lt 1">
+        <debug_to_file name="$logFileName" text="'apsl.lib.FindBestDealForWares ERROR! parameter waresList is not valid!'" />
+
+        <return>
+          <retval name="wasSuccessful" value="$successResult"/>
+        </return>
+      </do_if>
+      <do_if value="$findSpace? == false or typeof $findSpace != datatype.list">
+        <debug_to_file name="$logFileName" text="'apsl.lib.FindBestDealForWares ERROR! parameter findSpace is not valid!'" />
+
+        <return>
+          <retval name="wasSuccessful" value="$successResult"/>
+        </return>
+      </do_if>
+      <do_if value="$isFindBuyOffers == false and $isFindSellOffers == false">
+        <debug_to_file name="$logFileName" text="'apsl.lib.FindBestDealForWares ERROR! Invalid combination of isFindBuyOffers and isFindSellOffers. At least one must be true!'" />
+
+        <return>
+          <retval name="wasSuccessful" value="$successResult"/>
+        </return>
+      </do_if>
+
+      <!--Main Logic-->
+      <!--Result will be a table of wares that each have a buyOffer and sellOffer property that is a list. The values of $buy/sell offers will be null if there were no offers.-->
+      <!--$result.{$ware}.$buyOffers and $result.{$ware}.$sellOffers-->
+      <set_value name="$result" exact="table[]"/>      
+
+      <!--Do some optimization logic. No more than 3 wares at a time.-->
+      <!--An array to hold split up arrays of wares.-->
+      <set_value name="$waresContainer" exact="[]"/>
+      <set_value name="$wareSublist" exact="[]"/>
+      <append_to_list name="$waresContainer" exact="$wareSublist"/>
+      <set_value name="$optimizationCounter" exact="1"/>
+
+      <!--Go through all the wares, and chuck them into optimized buckets. This is aimed at balancing the wares to find_ calls (since the same find call has to be called on every cluster/sector)-->
+      <do_all exact="$waresList.count" counter="$wareCounter">
+
+        <!--While we're spinning through the wares, create entries for them on the result object-->
+        <do_if value="$result.{$waresList.{$wareCounter}}? == false">
+          <set_value name="$result.{$waresList.{$wareCounter}}" exact="table[]"/>
+          <set_value name="$result.{$waresList.{$wareCounter}}.$buyOffers" exact="null"/>
+          <set_value name="$result.{$waresList.{$wareCounter}}.$sellOffers" exact="null"/>
+        </do_if>
+        <do_else>
+          <debug_to_file name="'apsl.ship_trader.log'" text="'apsl.lib.FindBestDealForWares - WARNING! Wares list had multiple copies of the same ware!'" />
+        </do_else>
+
+        <!--Stick the ware in the bucket, increment optimization counter-->
+        <append_to_list name="$wareSublist" exact="$waresList.{$wareCounter}"/>
+        <debug_to_file name="'apsl.ship_trader.log'" text="'apsl.lib.FindBestDealForWares - INFO - Adding ware %1 to sublist'.[$waresList.{$wareCounter}]" chance="$debugChance"/>
+        <set_value name="$optimizationCounter" exact="1" operation="add"/>
+
+        <!--Move to the next sublist when the optimization limit is reached-->
+        <do_if value="$optimizationCounter gt $optimizedLimit">
+          <!--Edge case, if this is already the last, no need to add an empty ware containter-->
+          <do_if value="$wareCounter == $wareSublist.count">
+            <break/>
+          </do_if>
+          <set_value name="$optimizationCounter" exact="1"/>
+          <!--Might need to remove val, then remake it. Test without it first.-->
+          <set_value name="$wareSublist" exact="[]"/>
+          <append_to_list name="$waresContainer" exact="$wareSublist"/>
+        </do_if>
+      </do_all>
+
+      <debug_to_file name="'apsl.ship_trader.log'" text="'apsl.lib.FindBestDealForWares - INFO - Wares container looks like %1'.[$waresContainer]" chance="$debugChance"/>
+      <!--Loop through the optimized list and get the wares. Might want to figure out how to break this up with some runscripts if I notice performance decreases-->
+      <do_all exact="$findSpace.count" counter="$spaceCounter">
+        <do_all exact="$waresContainer.count" counter="$waresContainerCounter">
+          <!--Need to test here as well, shouldn't need to remove these-->
+          <set_value name="$buyOffers" exact="null"/>
+          <set_value name="$sellOffers" exact="null"/>          
+
+          <do_if value="$isFindBuyOffers == true">
+            <find_buy_offer wares="$waresContainer.{$waresContainerCounter}" space="$findSpace.{$spaceCounter}" multiple="true" result="$buyOffers">
+              <match_buyer tradesknownto="faction.player" />
+              <amount min="1"/>
+            </find_buy_offer>
+            <debug_to_file name="'apsl.ship_trader.log'" text="'apsl.lib.FindBestDealForWares - INFO - Searching buy offers for wares %1 in space %2 - %3 results'.[$waresContainer.{$waresContainerCounter}, $findSpace.{$spaceCounter}.name, $buyOffers.count]" chance="$debugChance"/>
+          </do_if>
+
+          <do_if value="$isFindSellOffers == true">
+            <find_sell_offer wares="$waresContainer.{$waresContainerCounter}" space="$findSpace.{$spaceCounter}" multiple="true" result="$sellOffers">
+              <match_seller tradesknownto="faction.player" />
+              <amount min="1"/>
+            </find_sell_offer>
+            <debug_to_file name="'apsl.ship_trader.log'" text="'apsl.lib.FindBestDealForWares - INFO - Searching sell offers for wares %1 in space %2 - %3 results'.[$waresContainer.{$waresContainerCounter}, $findSpace.{$spaceCounter}.name, $sellOffers.count]" chance="$debugChance"/>
+          </do_if>
+
+          <do_if value="$buyOffers != null">
+
+            <do_all exact="$buyOffers.count" counter="$buyOfferCounter">
+
+              <do_if value="$result.{$buyOffers.{$buyOfferCounter}.ware}.$buyOffers == null">
+                <set_value name="$result.{$buyOffers.{$buyOfferCounter}.ware}.$buyOffers" exact="[]"/>
+              </do_if>
+
+              <append_to_list name="$result.{$buyOffers.{$buyOfferCounter}.ware}.$buyOffers" exact="$buyOffers.{$buyOfferCounter}"/>              
+            </do_all>
+            <debug_to_file name="'apsl.ship_trader.log'" text="'apsl.lib.FindBestDealForWares - INFO - Buy offers chunked into appropriate wares property'" chance="$debugChance"/>
+          </do_if>
+
+          <do_if value="$sellOffers != null">
+
+            <do_all exact="$sellOffers.count" counter="$sellOfferCounter">
+
+              <do_if value="$result.{$sellOffers.{$sellOfferCounter}.ware}.$sellOffers == null">
+                <set_value name="$result.{$sellOffers.{$sellOfferCounter}.ware}.$sellOffers" exact="[]"/>
+              </do_if>
+
+              <append_to_list name="$result.{$sellOffers.{$sellOfferCounter}.ware}.$sellOffers" exact="$sellOffers.{$sellOfferCounter}"/>
+            </do_all>
+            <debug_to_file name="'apsl.ship_trader.log'" text="'apsl.lib.FindBestDealForWares - INFO - Sell offers chunked into appropriate wares property'" chance="$debugChance"/>
+          </do_if>
+
+          <set_value name="$successResult" exact="true"/>
+        </do_all>
+      </do_all>
+      
+      <!--In order to be save game safe, use the main wareslist passed in for this iteration-->
+      <do_all exact="$waresList.count" counter="$sortingCounter">
+
+        <do_if value="$result.{$waresList.{$sortingCounter}}? == true and $result.{$waresList.{$sortingCounter}} != null and $result.{$waresList.{$sortingCounter}}.$buyOffers != null">
+          <run_script name="'apsl.lib.QuicksortTradesByUnitPrice'">
+            <param name="sortList" value="$result.{$waresList.{$sortingCounter}}.$buyOffers"/>
+          </run_script>
+          
+          <debug_to_file name="'apsl.ship_trader.log'" text="'apsl.lib.FindBestDealForWares - INFO - Buy offers Sorted List for ware %1 - list: %2'.[$waresList.{$sortingCounter}, $result.{$waresList.{$sortingCounter}}.$buyOffers]" chance="$debugChance"/>
+        </do_if>
+
+        <do_if value="$result.{$waresList.{$sortingCounter}}? == true and $result.{$waresList.{$sortingCounter}} != null and $result.{$waresList.{$sortingCounter}}.$sellOffers != null">
+          <run_script name="'apsl.lib.QuicksortTradesByUnitPrice'">
+            <param name="sortList" value="$result.{$waresList.{$sortingCounter}}.$sellOffers"/>
+          </run_script>
+          <debug_to_file name="'apsl.ship_trader.log'" text="'apsl.lib.FindBestDealForWares - INFO - Sell offers Sorted List for ware %1 - list: %2'.[$waresList.{$sortingCounter}, $result.{$waresList.{$sortingCounter}}.$sellOffers]" chance="$debugChance"/>
+        </do_if>        
+      </do_all>
+
+      <return>
+        <retval name="wasSuccessful" value="$successResult"/>        
+        <retval name="wareOfferTable" value="$result"/>
+      </return>
+    </actions>
+  </attention>
+</aiscript>

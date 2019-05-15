@@ -44,18 +44,33 @@
                 <start_script name="'trade.station'" object="$stationsList.{$stationCounter}.tradenpc" >
                 </start_script>
               </do_if>
+              
+              <!--While we're looping, reset player subs-->
+              <do_if value="$stationsList.{$stationCounter}.owner == faction.player and $stationsList.{$stationCounter}.subordinates.{assignment.trade}.count gt 0">
+                <!--Possible, need to loop through subs and any traders, change their default order.-->
+                <set_value name="$subTraders" exact="$stationsList.{$stationCounter}.subordinates.{assignment.trade}"/>
+
+                <do_all exact="$subTraders.count" counter="$traderCounter">
+                  <create_order object="$subTraders.{$traderCounter}" id="'ApslStationTraderOrder'" default="true">
+                    
+                  </create_order>
+                </do_all>
+              </do_if>
             </do_all>
-          </do_if>
-          
-          <!--TODO: Restart script on all trade ships?-->
+          </do_if>          
           
           <!--Notify player the mod is installed.-->
           <debug_to_file name="'apsl.log'" text="'INFO - APSL has been installed!'" />
           <debug_to_file name="'apsl.station_eval.log'" text="'INFO - station evaluation debug logging started'" append="false"/>
+          <debug_to_file name="'apsl.trade_eval.log'" text="'INFO - station evaluation debug logging started'" append="false"/>
+          <debug_to_file name="'apsl.ship_trader.log'" text="'INFO - station evaluation debug logging started'" append="false"/>
           <show_help duration="10s" custom="{98776,2}"/>
         </do_if>
         <do_else>
-          <debug_to_file name="'apsl.station_eval.log'" text="'INFO - APSL already installed - creating new logfile for this run.'" append="false"/>
+          <debug_to_file name="'apsl.log'" text="'INFO - APSL Already installed - Beginning logging'" append="false"/>
+          <debug_to_file name="'apsl.station_eval.log'" text="'INFO - station evaluation debu logging started.'" append="false"/>
+          <debug_to_file name="'apsl.trade_eval.log'" text="'INFO - trade evaluation debug logging started'" append="false"/>
+          <debug_to_file name="'apsl.ship_trader.log'" text="'INFO - ship trading debug logging started'" append="false"/>
           <!--Uncomment when loading a save game with apsl already installed. Set to true if debugging is desired. Don't forget to set it back to false when done-->
           <!--<set_value name="global.$apslData.$debug" exact="false"/>-->
         </do_else>

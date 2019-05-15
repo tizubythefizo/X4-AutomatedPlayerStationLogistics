@@ -25,7 +25,7 @@
         </return>
       </do_if>
       
-      <!--Main logic-->
+      <!--Main logic-->      
 
       <do_if value="$interestingStationsList.count == 0">
         <!--We can save a bit of time if the list is empty, the data to add will already be sorted by virtue of being the only thing there.-->
